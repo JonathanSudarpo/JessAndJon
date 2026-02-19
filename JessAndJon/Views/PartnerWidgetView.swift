@@ -111,7 +111,9 @@ struct PartnerWidgetView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
+                    .aspectRatio(contentMode: .fill)
                     .frame(height: isLarge ? 300 : 100)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: isLarge ? 20 : 12))
             } else {
                 RoundedRectangle(cornerRadius: isLarge ? 20 : 12)
@@ -177,8 +179,14 @@ struct PartnerWidgetView: View {
     
     private func statusPreview(content: SharedContent, isLarge: Bool) -> some View {
         VStack(spacing: isLarge ? 16 : 8) {
-            Text(content.statusEmoji ?? "💕")
+            if let emoji = content.statusEmoji {
+                Text(emoji)
                 .font(.system(size: isLarge ? 80 : 40))
+            } else {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: isLarge ? 48 : 24))
+                    .foregroundColor(AppTheme.accentPink)
+            }
             
             Text(content.statusText ?? "")
                 .font(isLarge ? .appHeadline : .appCaption)
@@ -215,8 +223,53 @@ struct PartnerWidgetView: View {
     private func historyRow(content: SharedContent) -> some View {
         HStack(spacing: 12) {
             // Thumbnail
+            Group {
+                switch content.contentType {
+                case .photo:
+                    if let imageData = content.imageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppTheme.softGradient)
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(AppTheme.accentPink)
+                            )
+                    }
+                case .status:
+                    // Status: Just show the emoji in a simple rounded square
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(
+                                RadialGradient(
+                                    colors: [AppTheme.softPink.opacity(0.4), AppTheme.lavender.opacity(0.2)],
+                                    center: .center,
+                                    startRadius: 10,
+                                    endRadius: 30
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        if let emoji = content.statusEmoji {
+                            Text(emoji)
+                                .font(.system(size: 32))
+                        } else {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(AppTheme.accentPink)
+                        }
+                    }
+                default:
             contentPreview(content: content, isLarge: false)
                 .frame(width: 60, height: 60)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

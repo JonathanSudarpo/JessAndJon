@@ -6,7 +6,9 @@ struct StatusView: View {
     
     @State private var selectedStatus: StatusOption?
     @State private var customStatus = ""
+    @State private var customEmoji = "💭"
     @State private var showCustomInput = false
+    @State private var showEmojiPicker = false
     @State private var isSending = false
     @State private var showSuccess = false
     @State private var animatingStatusId: UUID?
@@ -50,6 +52,9 @@ struct StatusView: View {
             if showSuccess {
                 successOverlay
             }
+        }
+        .sheet(isPresented: $showEmojiPicker) {
+            EmojiPickerView(selectedEmoji: $customEmoji)
         }
     }
     
@@ -184,23 +189,42 @@ struct StatusView: View {
             
             if showCustomInput {
                 HStack(spacing: 12) {
-                    // Emoji selector (simplified - just show heart)
-                    ZStack {
-                        Circle()
-                            .fill(AppTheme.softGradient)
-                            .frame(width: 50, height: 50)
-                        Text("💭")
-                            .font(.system(size: 24))
+                    // Emoji selector - clickable
+                    Button(action: {
+                        showEmojiPicker = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.softGradient)
+                                .frame(width: 50, height: 50)
+                            
+                            Text(customEmoji)
+                                .font(.system(size: 24))
+                        }
                     }
+                    .buttonStyle(.plain)
                     
-                    TextField("What's on your mind?", text: $customStatus)
-                        .font(.appBody)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white)
-                                .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
-                        )
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("What's on your mind?", text: $customStatus)
+                            .font(.appBody)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.white)
+                                    .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
+                            )
+                            .onChange(of: customStatus) { _, newValue in
+                                // Limit to max length
+                                if newValue.count > Validation.maxStatusTextLength {
+                                    customStatus = String(newValue.prefix(Validation.maxStatusTextLength))
+                                }
+                            }
+                        
+                        Text("\(customStatus.count)/\(Validation.maxStatusTextLength) characters")
+                            .font(.system(size: 11))
+                            .foregroundColor(customStatus.count > Validation.maxStatusTextLength ? .red : AppTheme.textSecondary)
+                            .padding(.leading, 4)
+                    }
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -237,7 +261,7 @@ struct StatusView: View {
                         .fill(AppTheme.buttonGradient)
                         .frame(width: 100, height: 100)
                     
-                    Text(selectedStatus?.emoji ?? "💭")
+                    Text(selectedStatus?.emoji ?? customEmoji)
                         .font(.system(size: 44))
                 }
                 
@@ -286,13 +310,16 @@ struct StatusView: View {
                     content.statusEmoji = status.emoji
                     content.statusText = status.text
                 } else {
-                    content.statusEmoji = "💭"
-                    content.statusText = customStatus
+                    content.statusEmoji = customEmoji
+                    // Validate and sanitize custom status text
+                    content.statusText = Validation.validateStatusText(customStatus)
                 }
                 
                 try await firebaseService.sendContent(content)
                 
+                // Refresh partner content immediately after sending
                 await MainActor.run {
+                    firebaseService.refreshPartnerContent()
                     isSending = false
                     showSuccess = true
                 }

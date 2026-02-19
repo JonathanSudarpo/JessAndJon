@@ -217,7 +217,7 @@ struct DrawingCanvas: View {
         Button(action: { lineWidth = width }) {
             ZStack {
                 Circle()
-                    .fill(lineWidth == width ? AppTheme.softGradient : Color.clear)
+                    .fill(lineWidth == width ? AnyShapeStyle(AppTheme.softGradient) : AnyShapeStyle(Color.clear))
                     .frame(width: 44, height: 44)
                 
                 Circle()

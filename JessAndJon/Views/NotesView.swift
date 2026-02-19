@@ -41,8 +41,11 @@ struct NotesView: View {
                 // Mode selector
                 modeSelectorView
                 
-                if showDrawingCanvas {
-                    // Drawing mode
+                if currentDrawing != nil {
+                    // Drawing mode (show if drawing exists, regardless of mode selector)
+                    drawingView
+                } else if showDrawingCanvas {
+                    // Drawing mode (no drawing yet)
                     drawingView
                 } else {
                     // Text note mode
@@ -148,12 +151,18 @@ struct NotesView: View {
                         .foregroundColor(AppTheme.textPrimary)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 150)
+                        .onChange(of: noteText) { _, newValue in
+                            // Limit to max length
+                            if newValue.count > Validation.maxNoteLength {
+                                noteText = String(newValue.prefix(Validation.maxNoteLength))
+                            }
+                        }
                     
                     HStack {
                         Spacer()
-                        Text("\(noteText.count)/200")
+                        Text("\(noteText.count)/\(Validation.maxNoteLength)")
                             .font(.appCaption)
-                            .foregroundColor(AppTheme.textSecondary)
+                            .foregroundColor(noteText.count > Validation.maxNoteLength ? .red : AppTheme.textSecondary)
                     }
                 }
                 .padding(20)
@@ -347,12 +356,25 @@ struct NotesView: View {
                 if let drawing = currentDrawing {
                     content.drawingData = drawing.pngData()
                 } else {
-                    content.noteText = noteText
+                    // Validate and sanitize note text
+                    do {
+                        let validatedNote = try Validation.validateNote(noteText)
+                        content.noteText = validatedNote
+                    } catch {
+                        await MainActor.run {
+                            isSending = false
+                            // Show error (could add alert here)
+                            print("Validation error: \(error.localizedDescription)")
+                        }
+                        return
+                    }
                 }
                 
                 try await firebaseService.sendContent(content)
                 
+                // Refresh partner content immediately after sending
                 await MainActor.run {
+                    firebaseService.refreshPartnerContent()
                     isSending = false
                     showSuccess = true
                     noteText = ""

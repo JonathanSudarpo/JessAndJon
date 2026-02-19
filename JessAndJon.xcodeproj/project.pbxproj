@@ -7,49 +7,56 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		/* App files */
-		A1000001 /* JessAndJonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001; };
-		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002; };
-		A1000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000003; };
-		A1000004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004; };
-		A1000005 /* FirebaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005; };
-		A1000006 /* PhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006; };
-		A1000007 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007; };
-		A1000008 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008; };
-		A1000009 /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000009; };
-		A1000010 /* DrawingCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000010; };
-		A1000011 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011; };
-		A1000012 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012; };
-		A1000013 /* PartnerWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013; };
-		A1000014 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014; };
-		A1000015 /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000015; };
-		A1000016 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A2000016; };
-		
-		/* Widget files */
-		A1100001 /* LoveWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2100001; };
-		A1100002 /* LoveWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2100002; };
-		A1100003 /* WidgetAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2100003; };
-		A1100004 /* LoveWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3100001; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		0B7463B12F47876E00FAF09E /* EmojiPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7463B02F47876E00FAF09E /* EmojiPickerView.swift */; };
+		0B7463B42F47881200FAF09E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 0B7463B32F47881200FAF09E /* FirebaseAuth */; };
+		0B7463B62F47881200FAF09E /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0B7463B52F47881200FAF09E /* FirebaseFirestore */; };
+		0B7463B82F47881200FAF09E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 0B7463B72F47881200FAF09E /* FirebaseStorage */; };
+		0B7463BA2F47941C00FAF09E /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7463B92F47941C00FAF09E /* AuthService.swift */; };
+		0B7463BD2F47942900FAF09E /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7463BC2F47942900FAF09E /* ProfileView.swift */; };
+		0B7463BE2F47942900FAF09E /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7463BB2F47942900FAF09E /* LoginView.swift */; };
+		0B7463C12F479B1100FAF09E /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 0B7463C02F479B1100FAF09E /* GoogleSignIn */; };
+		0B7463C32F479B1100FAF09E /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0B7463C22F479B1100FAF09E /* GoogleSignInSwift */; };
+		0BA71DA82F47D1C500B703B1 /* PhotoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA71DA72F47D1C500B703B1 /* PhotoDetailView.swift */; };
+		0DA7A6057CEAB7A2F92AE0E0 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D08044D72A6A1F6EBA718E4 /* Theme.swift */; };
+		1538893B8DFD05AA451DDA64 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781B3D64091BE434E07BA009 /* Components.swift */; };
+		20F6B9F5F90A4ABFFAD0B89D /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BD5D0F8E700855DB5B5DFB /* Models.swift */; };
+		298873EFFA804056576BCC76 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D148585FAB492E437B97AC /* OnboardingView.swift */; };
+		2A48C0FAD1666815008CD0A8 /* LoveWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFE6A0B2DFAAEF000A81660 /* LoveWidgetBundle.swift */; };
+		35A33403415410E72FF8FBB4 /* WidgetAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B29F2420F793F1B39645D089 /* WidgetAssets.xcassets */; };
+		42E0AE2C9DEC045D253C7974 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D939EC304878DA60649292D /* ContentView.swift */; };
+		45C5D43E2E777BE928947440 /* JessAndJonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEB63BAAB77A03A30BE69126 /* JessAndJonApp.swift */; };
+		46400B54B8E942EDFE651A95 /* LoveWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C142BFFC855904644450D81 /* LoveWidget.swift */; };
+		63BD4737811FFB57D8D7B8D3 /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A20F42876A86AE1136CCD50 /* MemoriesView.swift */; };
+		858BF31565370D4A22FB9D41 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A65C555A4F4104F5A82CA445 /* Assets.xcassets */; };
+		8A8CAFE334B57F4B4A6915AD /* FirebaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0C64C8AA69CF418ECBB733 /* FirebaseService.swift */; };
+		8B286B1F3E9369E926B235E3 /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3562F404EBEA7C37B662248D /* ImagePicker.swift */; };
+		A8415F1EA1CDE0CAA8886ABC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 05189063373A513EC394179B /* GoogleService-Info.plist */; };
+		C118CEFAAF542F199CABC0D6 /* PartnerWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E528191974CFB8B9A4444306 /* PartnerWidgetView.swift */; };
+		C2B1BBF816350068175D0DD6 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 613403F922C4744F67C5D6C9 /* NotesView.swift */; };
+		CDF460BA2E5B27E9FCE307DD /* LoveWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9F7FC3552B4B3C3581E842E6 /* LoveWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D917397484B6531572AB5029 /* DrawingCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F540D94B40850BA24C1FD9 /* DrawingCanvas.swift */; };
+		E817027E203B627405FEC32E /* PhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67D6AD661053455BF4140DC /* PhotoView.swift */; };
+		F8C3AE869713BA02B67DBD1E /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D028D19725C474F82D3D4CE /* StatusView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		A4000001 /* PBXContainerItemProxy */ = {
+		218FD4827B45E3A28C9654B7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = A5000001;
+			containerPortal = 794AAB86BCF4AC2A621739F5 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = A3100001;
+			remoteGlobalIDString = EF4CD482E2A55B1A9E5E4114;
 			remoteInfo = LoveWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		A6000001 /* Embed Foundation Extensions */ = {
+		4A654930AF257145626954D2 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A1100004 /* LoveWidgetExtension.appex in Embed Foundation Extensions */,
+				CDF460BA2E5B27E9FCE307DD /* LoveWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -57,172 +64,182 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		/* App files */
-		A2000001 /* JessAndJonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JessAndJonApp.swift; sourceTree = "<group>"; };
-		A2000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A2000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A2000004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		A2000005 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseService.swift; sourceTree = "<group>"; };
-		A2000006 /* PhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoView.swift; sourceTree = "<group>"; };
-		A2000007 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
-		A2000008 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
-		A2000009 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
-		A2000010 /* DrawingCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCanvas.swift; sourceTree = "<group>"; };
-		A2000011 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		A2000012 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		A2000013 /* PartnerWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerWidgetView.swift; sourceTree = "<group>"; };
-		A2000014 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
-		A2000015 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
-		A2000016 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		A2000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A2000018 /* JessAndJon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JessAndJon.entitlements; sourceTree = "<group>"; };
-		
-		/* Widget files */
-		A2100001 /* LoveWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveWidgetBundle.swift; sourceTree = "<group>"; };
-		A2100002 /* LoveWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveWidget.swift; sourceTree = "<group>"; };
-		A2100003 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
-		A2100004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		
-		/* Products */
-		A3000001 /* Jess & Jon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Jess & Jon.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A3100001 /* LoveWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LoveWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		00D148585FAB492E437B97AC /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		05189063373A513EC394179B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		0B7463B02F47876E00FAF09E /* EmojiPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiPickerView.swift; sourceTree = "<group>"; };
+		0B7463B92F47941C00FAF09E /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		0B7463BB2F47942900FAF09E /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		0B7463BC2F47942900FAF09E /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		0BA71DA72F47D1C500B703B1 /* PhotoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoDetailView.swift; sourceTree = "<group>"; };
+		0DD21747FAC22F64012B4D6A /* JessAndJon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JessAndJon.entitlements; sourceTree = "<group>"; };
+		1D08044D72A6A1F6EBA718E4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		1E8F3B5C9D2A4E7F8B9C0D1E /* LoveWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LoveWidgetExtension.entitlements; sourceTree = "<group>"; };
+		1F2590BF6B45ED6CB9CC0821 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2AF9AD6523FF8D001FFA0BBE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2D028D19725C474F82D3D4CE /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
+		2F68B379FC40FC137902A726 /* Jess & Jon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Jess & Jon.app"; path = Lovance.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3562F404EBEA7C37B662248D /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
+		5A20F42876A86AE1136CCD50 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
+		613403F922C4744F67C5D6C9 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
+		6C142BFFC855904644450D81 /* LoveWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveWidget.swift; sourceTree = "<group>"; };
+		781B3D64091BE434E07BA009 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		7D939EC304878DA60649292D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9AFE6A0B2DFAAEF000A81660 /* LoveWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveWidgetBundle.swift; sourceTree = "<group>"; };
+		9F7FC3552B4B3C3581E842E6 /* LoveWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LoveWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A65C555A4F4104F5A82CA445 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B29F2420F793F1B39645D089 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
+		B6BD5D0F8E700855DB5B5DFB /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		BB0C64C8AA69CF418ECBB733 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseService.swift; sourceTree = "<group>"; };
+		BEB63BAAB77A03A30BE69126 /* JessAndJonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JessAndJonApp.swift; sourceTree = "<group>"; };
+		C67D6AD661053455BF4140DC /* PhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoView.swift; sourceTree = "<group>"; };
+		E528191974CFB8B9A4444306 /* PartnerWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerWidgetView.swift; sourceTree = "<group>"; };
+		F3F540D94B40850BA24C1FD9 /* DrawingCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCanvas.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A7000001 /* Frameworks */ = {
+		B39821C7DD8C3FD2F10699AA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A7100001 /* Frameworks */ = {
+		C486C6EDD4C9B27B2D942D38 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0B7463C32F479B1100FAF09E /* GoogleSignInSwift in Frameworks */,
+				0B7463B42F47881200FAF09E /* FirebaseAuth in Frameworks */,
+				0B7463C12F479B1100FAF09E /* GoogleSignIn in Frameworks */,
+				0B7463B62F47881200FAF09E /* FirebaseFirestore in Frameworks */,
+				0B7463B82F47881200FAF09E /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A8000001 = {
+		49B4D526602A75DBFB4B6CDC /* LoveWidgetExtension */ = {
 			isa = PBXGroup;
 			children = (
-				A8000002 /* JessAndJon */,
-				A8100001 /* LoveWidgetExtension */,
-				A8000003 /* Products */,
+				9AFE6A0B2DFAAEF000A81660 /* LoveWidgetBundle.swift */,
+				6C142BFFC855904644450D81 /* LoveWidget.swift */,
+				B29F2420F793F1B39645D089 /* WidgetAssets.xcassets */,
+				2AF9AD6523FF8D001FFA0BBE /* Info.plist */,
+				1E8F3B5C9D2A4E7F8B9C0D1E /* LoveWidgetExtension.entitlements */,
 			);
+			path = LoveWidgetExtension;
 			sourceTree = "<group>";
 		};
-		A8000002 /* JessAndJon */ = {
+		5B75A3C99622A36D8D83A6E3 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				A2000001 /* JessAndJonApp.swift */,
-				A2000002 /* ContentView.swift */,
-				A8000004 /* Views */,
-				A8000005 /* Models */,
-				A8000006 /* Services */,
-				A8000007 /* Components */,
-				A2000003 /* Assets.xcassets */,
-				A2000016 /* GoogleService-Info.plist */,
-				A2000017 /* Info.plist */,
-				A2000018 /* JessAndJon.entitlements */,
-			);
-			path = JessAndJon;
-			sourceTree = "<group>";
-		};
-		A8000003 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				A3000001 /* Jess & Jon.app */,
-				A3100001 /* LoveWidgetExtension.appex */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		A8000004 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				A2000006 /* PhotoView.swift */,
-				A2000007 /* NotesView.swift */,
-				A2000008 /* StatusView.swift */,
-				A2000009 /* MemoriesView.swift */,
-				A2000012 /* OnboardingView.swift */,
-				A2000013 /* PartnerWidgetView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		A8000005 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				A2000004 /* Models.swift */,
-				A2000011 /* Theme.swift */,
+				B6BD5D0F8E700855DB5B5DFB /* Models.swift */,
+				1D08044D72A6A1F6EBA718E4 /* Theme.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
 		};
-		A8000006 /* Services */ = {
+		6F26E42710D2C7D5AF62CD61 = {
 			isa = PBXGroup;
 			children = (
-				A2000005 /* FirebaseService.swift */,
+				CAA7A28C7030C1EFD45955A9 /* JessAndJon */,
+				49B4D526602A75DBFB4B6CDC /* LoveWidgetExtension */,
+				B150277411C85E337FDC61B8 /* Products */,
 			);
-			path = Services;
 			sourceTree = "<group>";
 		};
-		A8000007 /* Components */ = {
+		7084FE5A74339D7DFBB1DC53 /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				A2000010 /* DrawingCanvas.swift */,
-				A2000014 /* Components.swift */,
-				A2000015 /* ImagePicker.swift */,
+				F3F540D94B40850BA24C1FD9 /* DrawingCanvas.swift */,
+				781B3D64091BE434E07BA009 /* Components.swift */,
+				3562F404EBEA7C37B662248D /* ImagePicker.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
 		};
-		A8100001 /* LoveWidgetExtension */ = {
+		82D116894D08BECAE6554DA4 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				A2100001 /* LoveWidgetBundle.swift */,
-				A2100002 /* LoveWidget.swift */,
-				A2100003 /* WidgetAssets.xcassets */,
-				A2100004 /* Info.plist */,
+				0B7463B92F47941C00FAF09E /* AuthService.swift */,
+				BB0C64C8AA69CF418ECBB733 /* FirebaseService.swift */,
 			);
-			path = LoveWidgetExtension;
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A6F1E2743A9232A33C6BA2D7 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				0BA71DA72F47D1C500B703B1 /* PhotoDetailView.swift */,
+				0B7463BB2F47942900FAF09E /* LoginView.swift */,
+				0B7463BC2F47942900FAF09E /* ProfileView.swift */,
+				0B7463B02F47876E00FAF09E /* EmojiPickerView.swift */,
+				C67D6AD661053455BF4140DC /* PhotoView.swift */,
+				613403F922C4744F67C5D6C9 /* NotesView.swift */,
+				2D028D19725C474F82D3D4CE /* StatusView.swift */,
+				5A20F42876A86AE1136CCD50 /* MemoriesView.swift */,
+				00D148585FAB492E437B97AC /* OnboardingView.swift */,
+				E528191974CFB8B9A4444306 /* PartnerWidgetView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B150277411C85E337FDC61B8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2F68B379FC40FC137902A726 /* Jess & Jon.app */,
+				9F7FC3552B4B3C3581E842E6 /* LoveWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CAA7A28C7030C1EFD45955A9 /* JessAndJon */ = {
+			isa = PBXGroup;
+			children = (
+				BEB63BAAB77A03A30BE69126 /* JessAndJonApp.swift */,
+				7D939EC304878DA60649292D /* ContentView.swift */,
+				A6F1E2743A9232A33C6BA2D7 /* Views */,
+				5B75A3C99622A36D8D83A6E3 /* Models */,
+				82D116894D08BECAE6554DA4 /* Services */,
+				7084FE5A74339D7DFBB1DC53 /* Components */,
+				A65C555A4F4104F5A82CA445 /* Assets.xcassets */,
+				05189063373A513EC394179B /* GoogleService-Info.plist */,
+				1F2590BF6B45ED6CB9CC0821 /* Info.plist */,
+				0DD21747FAC22F64012B4D6A /* JessAndJon.entitlements */,
+			);
+			path = JessAndJon;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A9000001 /* JessAndJon */ = {
+		B0B9EEB68F153A9380E277D7 /* JessAndJon */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA000001;
+			buildConfigurationList = 0473E013FB25655B910F2895 /* Build configuration list for PBXNativeTarget "JessAndJon" */;
 			buildPhases = (
-				A7000002 /* Sources */,
-				A7000001 /* Frameworks */,
-				A7000003 /* Resources */,
-				A6000001 /* Embed Foundation Extensions */,
+				16A58B7BAEC82B1F532CE519 /* Sources */,
+				C486C6EDD4C9B27B2D942D38 /* Frameworks */,
+				05347A1FD8AE7D6AA9288591 /* Resources */,
+				4A654930AF257145626954D2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				A9000002 /* PBXTargetDependency */,
+				74AAE644BFF60141AD9B111D /* PBXTargetDependency */,
 			);
 			name = JessAndJon;
-			packageProductDependencies = (
-			);
 			productName = JessAndJon;
-			productReference = A3000001;
+			productReference = 2F68B379FC40FC137902A726 /* Jess & Jon.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A9100001 /* LoveWidgetExtension */ = {
+		EF4CD482E2A55B1A9E5E4114 /* LoveWidgetExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA100001;
+			buildConfigurationList = 147B3062E651ADE4DE0B1939 /* Build configuration list for PBXNativeTarget "LoveWidgetExtension" */;
 			buildPhases = (
-				A7100002 /* Sources */,
-				A7100001 /* Frameworks */,
-				A7100003 /* Resources */,
+				A4CCD16FCBF50F1DA9F9BC7F /* Sources */,
+				B39821C7DD8C3FD2F10699AA /* Frameworks */,
+				57F1320BECB04E9F4D147FD8 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -230,28 +247,28 @@
 			);
 			name = LoveWidgetExtension;
 			productName = LoveWidgetExtension;
-			productReference = A3100001;
+			productReference = 9F7FC3552B4B3C3581E842E6 /* LoveWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		A5000001 /* Project object */ = {
+		794AAB86BCF4AC2A621739F5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					A9000001 = {
+					B0B9EEB68F153A9380E277D7 = {
 						CreatedOnToolsVersion = 15.0;
 					};
-					A9100001 = {
+					EF4CD482E2A55B1A9E5E4114 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
 			};
-			buildConfigurationList = AA000002;
+			buildConfigurationList = 0ACBCD6EF03240338DCFC291 /* Build configuration list for PBXProject "JessAndJon" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -259,82 +276,123 @@
 				en,
 				Base,
 			);
-			mainGroup = A8000001;
+			mainGroup = 6F26E42710D2C7D5AF62CD61;
 			packageReferences = (
+				0B7463B22F47881200FAF09E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				0B7463BF2F479B1100FAF09E /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
-			productRefGroup = A8000003;
+			productRefGroup = B150277411C85E337FDC61B8 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A9000001 /* JessAndJon */,
-				A9100001 /* LoveWidgetExtension */,
+				B0B9EEB68F153A9380E277D7 /* JessAndJon */,
+				EF4CD482E2A55B1A9E5E4114 /* LoveWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A7000003 /* Resources */ = {
+		05347A1FD8AE7D6AA9288591 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1000003 /* Assets.xcassets in Resources */,
-				A1000016 /* GoogleService-Info.plist in Resources */,
+				858BF31565370D4A22FB9D41 /* Assets.xcassets in Resources */,
+				A8415F1EA1CDE0CAA8886ABC /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A7100003 /* Resources */ = {
+		57F1320BECB04E9F4D147FD8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1100003 /* WidgetAssets.xcassets in Resources */,
+				35A33403415410E72FF8FBB4 /* WidgetAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A7000002 /* Sources */ = {
+		16A58B7BAEC82B1F532CE519 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1000001 /* JessAndJonApp.swift in Sources */,
-				A1000002 /* ContentView.swift in Sources */,
-				A1000004 /* Models.swift in Sources */,
-				A1000005 /* FirebaseService.swift in Sources */,
-				A1000006 /* PhotoView.swift in Sources */,
-				A1000007 /* NotesView.swift in Sources */,
-				A1000008 /* StatusView.swift in Sources */,
-				A1000009 /* MemoriesView.swift in Sources */,
-				A1000010 /* DrawingCanvas.swift in Sources */,
-				A1000011 /* Theme.swift in Sources */,
-				A1000012 /* OnboardingView.swift in Sources */,
-				A1000013 /* PartnerWidgetView.swift in Sources */,
-				A1000014 /* Components.swift in Sources */,
-				A1000015 /* ImagePicker.swift in Sources */,
+				45C5D43E2E777BE928947440 /* JessAndJonApp.swift in Sources */,
+				42E0AE2C9DEC045D253C7974 /* ContentView.swift in Sources */,
+				20F6B9F5F90A4ABFFAD0B89D /* Models.swift in Sources */,
+				8A8CAFE334B57F4B4A6915AD /* FirebaseService.swift in Sources */,
+				E817027E203B627405FEC32E /* PhotoView.swift in Sources */,
+				C2B1BBF816350068175D0DD6 /* NotesView.swift in Sources */,
+				F8C3AE869713BA02B67DBD1E /* StatusView.swift in Sources */,
+				63BD4737811FFB57D8D7B8D3 /* MemoriesView.swift in Sources */,
+				D917397484B6531572AB5029 /* DrawingCanvas.swift in Sources */,
+				0DA7A6057CEAB7A2F92AE0E0 /* Theme.swift in Sources */,
+				298873EFFA804056576BCC76 /* OnboardingView.swift in Sources */,
+				C118CEFAAF542F199CABC0D6 /* PartnerWidgetView.swift in Sources */,
+				0B7463B12F47876E00FAF09E /* EmojiPickerView.swift in Sources */,
+				0B7463BD2F47942900FAF09E /* ProfileView.swift in Sources */,
+				0B7463BE2F47942900FAF09E /* LoginView.swift in Sources */,
+				1538893B8DFD05AA451DDA64 /* Components.swift in Sources */,
+				8B286B1F3E9369E926B235E3 /* ImagePicker.swift in Sources */,
+				0B7463BA2F47941C00FAF09E /* AuthService.swift in Sources */,
+				0BA71DA82F47D1C500B703B1 /* PhotoDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A7100002 /* Sources */ = {
+		A4CCD16FCBF50F1DA9F9BC7F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1100001 /* LoveWidgetBundle.swift in Sources */,
-				A1100002 /* LoveWidget.swift in Sources */,
+				2A48C0FAD1666815008CD0A8 /* LoveWidgetBundle.swift in Sources */,
+				46400B54B8E942EDFE651A95 /* LoveWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		A9000002 /* PBXTargetDependency */ = {
+		74AAE644BFF60141AD9B111D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A9100001;
-			targetProxy = A4000001;
+			target = EF4CD482E2A55B1A9E5E4114 /* LoveWidgetExtension */;
+			targetProxy = 218FD4827B45E3A28C9654B7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		AB000001 /* Debug */ = {
+		32BD14F0F11EE6DA5B37CE0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = JessAndJon/JessAndJon.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 2A9GJ9WBT8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JessAndJon/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lovance;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access so you can take photos to share with your partner";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access so you can share photos with your partner";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
+				PRODUCT_NAME = Lovance;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7D900871A1F03C24E49D8295 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -397,7 +455,41 @@
 			};
 			name = Debug;
 		};
-		AB000002 /* Release */ = {
+		80D648B0877AE1A48BDF06F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = JessAndJon/JessAndJon.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 2A9GJ9WBT8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = JessAndJon/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lovance;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access so you can take photos to share with your partner";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access so you can share photos with your partner";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
+				PRODUCT_NAME = Lovance;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		950C4A3A46C9B39DB98C9272 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -453,109 +545,15 @@
 			};
 			name = Release;
 		};
-		AB100001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = JessAndJon/JessAndJon.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = JessAndJon/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Jess & Jon";
-				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access so you can take photos to share with your partner";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access so you can share photos with your partner";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
-				PRODUCT_NAME = "Jess & Jon";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		AB100002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = JessAndJon/JessAndJon.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = JessAndJon/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Jess & Jon";
-				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access so you can take photos to share with your partner";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need photo library access so you can share photos with your partner";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
-				PRODUCT_NAME = "Jess & Jon";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		AB200001 /* Debug */ = {
+		BF9568EFD64161F7DB2498CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = LoveWidgetExtension/LoveWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = LoveWidgetExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LoveWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app.widget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		AB200002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 2A9GJ9WBT8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LoveWidgetExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LoveWidget;
@@ -574,38 +572,113 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
+		};
+		C4E9E906D499C069FD7D68EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = LoveWidgetExtension/LoveWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2A9GJ9WBT8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LoveWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LoveWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AA000001 /* Build configuration list for PBXNativeTarget "JessAndJon" */ = {
+		0473E013FB25655B910F2895 /* Build configuration list for PBXNativeTarget "JessAndJon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB100001 /* Debug */,
-				AB100002 /* Release */,
+				32BD14F0F11EE6DA5B37CE0B /* Debug */,
+				80D648B0877AE1A48BDF06F2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AA000002 /* Build configuration list for PBXProject "JessAndJon" */ = {
+		0ACBCD6EF03240338DCFC291 /* Build configuration list for PBXProject "JessAndJon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB000001 /* Debug */,
-				AB000002 /* Release */,
+				7D900871A1F03C24E49D8295 /* Debug */,
+				950C4A3A46C9B39DB98C9272 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AA100001 /* Build configuration list for PBXNativeTarget "LoveWidgetExtension" */ = {
+		147B3062E651ADE4DE0B1939 /* Build configuration list for PBXNativeTarget "LoveWidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AB200001 /* Debug */,
-				AB200002 /* Release */,
+				C4E9E906D499C069FD7D68EA /* Debug */,
+				BF9568EFD64161F7DB2498CD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0B7463B22F47881200FAF09E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.9.0;
+			};
+		};
+		0B7463BF2F479B1100FAF09E /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0B7463B32F47881200FAF09E /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B7463B22F47881200FAF09E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		0B7463B52F47881200FAF09E /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B7463B22F47881200FAF09E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		0B7463B72F47881200FAF09E /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B7463B22F47881200FAF09E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		0B7463C02F479B1100FAF09E /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B7463BF2F479B1100FAF09E /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		0B7463C22F479B1100FAF09E /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0B7463BF2F479B1100FAF09E /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = A5000001 /* Project object */;
+	rootObject = 794AAB86BCF4AC2A621739F5 /* Project object */;
 }

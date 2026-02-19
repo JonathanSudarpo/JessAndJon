@@ -10,8 +10,23 @@ struct MemoriesView: View {
     @State private var showCollageView = false
     @State private var anniversaryDate: Date = Date()
     @State private var showDatePicker = false
+    @State private var selectedFilter: ContentType? = nil
+    @State private var selectedContent: SharedContent? = nil
     
     private let calendar = Calendar.current
+    
+    // Computed property for filtered memories
+    private var filteredMemories: [SharedContent] {
+        if let filter = selectedFilter {
+            if filter == .note {
+                // Notes filter includes both notes and drawings
+                return memories.filter { $0.contentType == .note || $0.contentType == .drawing }
+            } else {
+                return memories.filter { $0.contentType == filter }
+            }
+        }
+        return memories
+    }
     
     var body: some View {
         ScrollView {
@@ -41,14 +56,14 @@ struct MemoriesView: View {
                 if isLoading {
                     ProgressView()
                         .padding(40)
-                } else if memories.isEmpty {
+                } else if filteredMemories.isEmpty {
                     emptyState
                 } else {
                     memoryGrid
                 }
                 
                 // Create collage button
-                if !memories.isEmpty {
+                if !filteredMemories.isEmpty {
                     createCollageButton
                 }
                 
@@ -57,13 +72,34 @@ struct MemoriesView: View {
             .padding(.horizontal, 20)
         }
         .sheet(isPresented: $showCollageView) {
-            CollageView(memories: memories, monthYear: selectedMonth)
+            CollageView(memories: filteredMemories, monthYear: selectedMonth)
         }
         .sheet(isPresented: $showDatePicker) {
             anniversaryDatePicker
         }
+        .sheet(item: $selectedContent) { content in
+            if content.contentType == .photo {
+                PhotoDetailView(content: content)
+            }
+        }
         .onAppear {
             loadMemories()
+            // Sync user and partner data when Memories view appears (for anniversary date updates)
+            Task {
+                do {
+                    let (user, partner) = try await firebaseService.syncUserAndPartner()
+                    await MainActor.run {
+                        if let user = user {
+                            appState.saveUser(user)
+                        }
+                        if let partner = partner {
+                            appState.savePartner(partner)
+                        }
+                    }
+                } catch {
+                    // Silently fail - sync is best effort
+                }
+            }
         }
     }
     
@@ -91,9 +127,24 @@ struct MemoriesView: View {
                             .font(.appSubheadline)
                             .foregroundColor(AppTheme.textPrimary)
                         
-                        Text(daysUntilAnniversary(from: anniversary))
-                            .font(.appCaption)
-                            .foregroundColor(AppTheme.accentPink)
+                        HStack(spacing: 8) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppTheme.accentPink)
+                                Text("\(Date().daysSince(anniversary)) days together")
+                                    .font(.appSubheadline)
+                                    .foregroundColor(AppTheme.accentPink)
+                            }
+                            
+                            Text("•")
+                                .font(.appCaption)
+                                .foregroundColor(AppTheme.textSecondary)
+                            
+                            Text(daysUntilAnniversary(from: anniversary))
+                                .font(.appCaption)
+                                .foregroundColor(AppTheme.accentPurple)
+                        }
                     } else {
                         Text("Set your special date")
                             .font(.appSubheadline)
@@ -161,57 +212,164 @@ struct MemoriesView: View {
     
     // MARK: - Memory Stats
     private var memoryStats: some View {
-        HStack(spacing: 12) {
-            statCard(
-                icon: "photo.fill",
-                count: memories.filter { $0.contentType == .photo }.count,
-                label: "Photos",
-                color: AppTheme.accentPink
-            )
+        VStack(spacing: 12) {
+            // Streak card (full width)
+            let streak = firebaseService.getStreak()
+            if streak.currentStreak > 0 {
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.heartRed.opacity(0.15))
+                            .frame(width: 50, height: 50)
+                        
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(AppTheme.heartRed)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Current Streak")
+                            .font(.appCaption)
+                            .foregroundColor(AppTheme.textSecondary)
+                        
+                        HStack(spacing: 8) {
+                            Text("\(streak.currentStreak) days 🔥")
+                                .font(.appSubheadline)
+                                .foregroundColor(AppTheme.heartRed)
+                            
+                            if streak.longestStreak > streak.currentStreak {
+                                Text("• Best: \(streak.longestStreak)")
+                                    .font(.appCaption)
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.heartRed.opacity(0.1), AppTheme.accentPink.opacity(0.05)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: AppTheme.heartRed.opacity(0.1), radius: 8, x: 0, y: 4)
+                )
+            }
             
-            statCard(
-                icon: "note.text",
-                count: memories.filter { $0.contentType == .note || $0.contentType == .drawing }.count,
-                label: "Notes",
-                color: AppTheme.accentPurple
-            )
+            // Other stats - now clickable
+            HStack(spacing: 12) {
+                statCard(
+                    icon: "photo.fill",
+                    count: memories.filter { $0.contentType == .photo }.count,
+                    label: "Photos",
+                    color: AppTheme.accentPink,
+                    contentType: .photo
+                )
+                
+                statCard(
+                    icon: "note.text",
+                    count: memories.filter { $0.contentType == .note || $0.contentType == .drawing }.count,
+                    label: "Notes",
+                    color: AppTheme.accentPurple,
+                    contentType: .note
+                )
+                
+                statCard(
+                    icon: "heart.text.square.fill",
+                    count: memories.filter { $0.contentType == .status }.count,
+                    label: "Statuses",
+                    color: AppTheme.heartPink,
+                    contentType: .status
+                )
+            }
             
-            statCard(
-                icon: "heart.text.square.fill",
-                count: memories.filter { $0.contentType == .status }.count,
-                label: "Statuses",
-                color: AppTheme.heartPink
-            )
+            // Filter indicator and clear button
+            if selectedFilter != nil {
+                HStack {
+                    Text("Showing: \(filterLabel(selectedFilter!))")
+                        .font(.appCaption)
+                        .foregroundColor(AppTheme.textSecondary)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedFilter = nil
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                            Text("Clear filter")
+                                .font(.appCaption)
+                        }
+                        .foregroundColor(AppTheme.accentPurple)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
         }
     }
     
-    private func statCard(icon: String, count: Int, label: String, color: Color) -> some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(color)
-            }
-            
-            Text("\(count)")
-                .font(.appSubheadline)
-                .foregroundColor(AppTheme.textPrimary)
-            
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(AppTheme.textSecondary)
+    private func filterLabel(_ type: ContentType) -> String {
+        switch type {
+        case .photo: return "Photos"
+        case .note: return "Notes"
+        case .drawing: return "Drawings"
+        case .status: return "Statuses"
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
-                .shadow(color: color.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
+    }
+    
+    private func statCard(icon: String, count: Int, label: String, color: Color, contentType: ContentType) -> some View {
+        let isSelected = selectedFilter == contentType
+        
+        return Button(action: {
+            withAnimation(.spring(response: 0.3)) {
+                if selectedFilter == contentType {
+                    // Toggle off if already selected
+                    selectedFilter = nil
+                } else {
+                    selectedFilter = contentType
+                }
+            }
+        }) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? color.opacity(0.25) : color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(color)
+                }
+                
+                Text("\(count)")
+                    .font(.appSubheadline)
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text(label)
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? color.opacity(0.1) : Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isSelected ? color : Color.clear, lineWidth: 2)
+                    )
+                    .shadow(color: color.opacity(isSelected ? 0.2 : 0.1), radius: isSelected ? 12 : 8, x: 0, y: isSelected ? 6 : 4)
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Memory Grid
@@ -221,8 +379,15 @@ struct MemoriesView: View {
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 8) {
-            ForEach(memories) { memory in
-                memoryCell(memory: memory)
+            ForEach(filteredMemories) { memory in
+                if memory.contentType == .photo {
+                    Button(action: { selectedContent = memory }) {
+                        memoryCell(memory: memory)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    memoryCell(memory: memory)
+                }
             }
         }
     }
@@ -240,10 +405,10 @@ struct MemoriesView: View {
                     Image(systemName: "photo")
                         .foregroundColor(AppTheme.accentPink)
                 }
-            case .note, .drawing:
+            case .note:
                 AppTheme.lavender.opacity(0.3)
                 VStack(spacing: 4) {
-                    Image(systemName: memory.contentType == .drawing ? "pencil.tip" : "note.text")
+                    Image(systemName: "note.text")
                         .font(.system(size: 20))
                         .foregroundColor(AppTheme.accentPurple)
                     if let text = memory.noteText {
@@ -255,11 +420,30 @@ struct MemoriesView: View {
                             .padding(.horizontal, 4)
                     }
                 }
-            case .status:
+            case .drawing:
+                if let drawingData = memory.drawingData, let uiImage = UIImage(data: drawingData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    AppTheme.lavender.opacity(0.3)
+                    VStack(spacing: 4) {
+                        Image(systemName: "pencil.tip")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppTheme.accentPurple)
+                    }
+                }
+                case .status:
                 AppTheme.softGradient.opacity(0.5)
                 VStack(spacing: 4) {
-                    Text(memory.statusEmoji ?? "💕")
-                        .font(.system(size: 28))
+                    if let emoji = memory.statusEmoji {
+                        Text(emoji)
+                            .font(.system(size: 28))
+                    } else {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppTheme.accentPink)
+                    }
                     Text(memory.statusText ?? "")
                         .font(.system(size: 10))
                         .foregroundColor(AppTheme.textSecondary)
@@ -394,11 +578,11 @@ struct MemoriesView: View {
         let days = calendar.dateComponents([.day], from: now, to: nextAnniversary).day ?? 0
         
         if days == 0 {
-            return "🎉 Today is your anniversary!"
+            return "Today is your anniversary!"
         } else if days == 1 {
-            return "💕 Tomorrow is your anniversary!"
+            return "Tomorrow is your anniversary!"
         } else {
-            return "💕 \(days) days until your anniversary"
+            return "\(days) days until your anniversary"
         }
     }
     
@@ -407,13 +591,18 @@ struct MemoriesView: View {
         
         Task {
             do {
-                let content = try await firebaseService.fetchMemories(for: selectedMonth.monthYearString)
+                let monthYear = selectedMonth.monthYearString
+                print("📸 Loading memories for: \(monthYear)")
+                let content = try await firebaseService.fetchMemories(for: monthYear)
                 await MainActor.run {
                     memories = content
                     isLoading = false
+                    print("📸 Loaded \(content.count) memories")
                 }
             } catch {
+                print("❌ Error loading memories: \(error.localizedDescription)")
                 await MainActor.run {
+                    memories = []
                     isLoading = false
                 }
             }
@@ -421,10 +610,31 @@ struct MemoriesView: View {
     }
     
     private func saveAnniversary() {
-        if var user = appState.currentUser {
-            user.anniversaryDate = anniversaryDate
-            appState.saveUser(user)
+        guard var user = appState.currentUser else { return }
+        
+        user.anniversaryDate = anniversaryDate
+        appState.saveUser(user)
+        
+        // Also save to Firestore so it syncs between devices
+        Task {
+            do {
+                try await firebaseService.updateUser(user)
+                
+                // Refresh user and partner data to get the synced anniversary date
+                let (updatedUser, updatedPartner) = try await firebaseService.syncUserAndPartner()
+                await MainActor.run {
+                    if let updatedUser = updatedUser {
+                        appState.saveUser(updatedUser)
+                    }
+                    if let updatedPartner = updatedPartner {
+                        appState.savePartner(updatedPartner)
+                    }
+                }
+            } catch {
+                print("Failed to save anniversary to Firestore: \(error.localizedDescription)")
+            }
         }
+        
         showDatePicker = false
     }
 }
@@ -455,7 +665,7 @@ struct CollageView: View {
                                 .tag(index)
                         }
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .automatic))
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                     .onReceive(timer) { _ in
                         withAnimation(.easeInOut(duration: 0.5)) {
                             currentIndex = (currentIndex + 1) % memories.count
@@ -541,8 +751,14 @@ struct CollageView: View {
                     }
                 case .status:
                     VStack(spacing: 12) {
-                        Text(memory.statusEmoji ?? "💕")
-                            .font(.system(size: 80))
+                        if let emoji = memory.statusEmoji {
+                            Text(emoji)
+                                .font(.system(size: 80))
+                        } else {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
                         
                         Text(memory.statusText ?? "")
                             .font(.appHeadline)

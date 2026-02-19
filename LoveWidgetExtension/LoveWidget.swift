@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import UIKit
 
 // MARK: - Timeline Provider
 struct LoveWidgetProvider: TimelineProvider {
@@ -25,11 +26,27 @@ struct LoveWidgetProvider: TimelineProvider {
     }
     
     private func loadWidgetData() -> WidgetData {
-        guard let sharedDefaults = UserDefaults(suiteName: "group.com.jessandjon.app"),
-              let data = sharedDefaults.data(forKey: "widgetData"),
-              let widgetData = try? JSONDecoder().decode(WidgetData.self, from: data) else {
+        guard let sharedDefaults = UserDefaults(suiteName: "group.com.jessandjon.app") else {
+            // App Group not configured - return placeholder
+            print("⚠️ Widget: App Group not configured")
             return WidgetData.placeholder
         }
+        
+        guard let data = sharedDefaults.data(forKey: "widgetData") else {
+            // No widget data saved yet - return placeholder
+            print("⚠️ Widget: No widget data found in UserDefaults")
+            return WidgetData.placeholder
+        }
+        
+        guard let widgetData = try? JSONDecoder().decode(WidgetData.self, from: data) else {
+            // Failed to decode - return placeholder
+            print("⚠️ Widget: Failed to decode widget data")
+            return WidgetData.placeholder
+        }
+        
+        let textContent = widgetData.caption ?? widgetData.statusText ?? widgetData.noteText ?? "nil"
+        let imageSize = widgetData.imageData != nil ? "\(Double(widgetData.imageData!.count) / 1024.0)KB" : "none"
+        print("✅ Widget: Loaded data - contentType: \(widgetData.contentType.rawValue), senderName: \(widgetData.senderName), hasImageData: \(widgetData.imageData != nil), imageSize: \(imageSize), text: \(textContent)")
         return widgetData
     }
 }
@@ -47,6 +64,7 @@ struct WidgetData: Codable {
     var noteText: String?
     var statusEmoji: String?
     var statusText: String?
+    var caption: String?  // For photos
     var senderName: String
     var timestamp: Date
     
@@ -109,7 +127,7 @@ struct LoveWidgetEntryView: View {
             
             // Status text or preview
             VStack(spacing: 2) {
-                Text(entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
+                Text(entry.widgetData.caption ?? entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(2)
@@ -136,7 +154,7 @@ struct LoveWidgetEntryView: View {
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                 
-                Text(entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
+                Text(entry.widgetData.caption ?? entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(3)
@@ -159,7 +177,7 @@ struct LoveWidgetEntryView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Jess & Jon")
+                    Text("Lovance")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     
@@ -181,7 +199,7 @@ struct LoveWidgetEntryView: View {
                 .frame(height: 180)
             
             // Text
-            Text(entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
+            Text(entry.widgetData.caption ?? entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(3)

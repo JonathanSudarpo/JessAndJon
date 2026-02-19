@@ -38,5 +38,5 @@ ehthumbs.db
 Thumbs.db
 
 # Firebase (keep your own credentials private!)
-# Uncomment the line below if you don't want to share Firebase config
-# GoogleService-Info.plist
+# DO NOT commit GoogleService-Info.plist with real API keys
+GoogleService-Info.plist

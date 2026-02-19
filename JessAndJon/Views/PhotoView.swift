@@ -19,7 +19,7 @@ struct PhotoView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 // Title
                 VStack(spacing: 4) {
                     Text("Send a Photo")
@@ -30,7 +30,7 @@ struct PhotoView: View {
                         .font(.appCaption)
                         .foregroundColor(AppTheme.textSecondary)
                 }
-                .padding(.top, 20)
+                .padding(.top, 16)
                 
                 // Photo preview area
                 photoPreviewArea
@@ -43,10 +43,12 @@ struct PhotoView: View {
                 // Action buttons
                 actionButtons
                 
-                Spacer(minLength: 100)
+                Spacer(minLength: 20)
             }
             .padding(.horizontal, 20)
+            .padding(.bottom, 120) // Extra padding for tab bar
         }
+        .scrollIndicators(.hidden)
         .sheet(isPresented: $showCamera) {
             ImagePicker(image: $selectedImage, sourceType: .camera)
         }
@@ -73,8 +75,9 @@ struct PhotoView: View {
                 // Selected image preview
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
-                    .frame(height: 350)
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
@@ -94,7 +97,8 @@ struct PhotoView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 24)
                         .fill(AppTheme.cardGradient)
-                        .frame(height: 350)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 300)
                         .shadow(color: AppTheme.accentPink.opacity(0.15), radius: 15, x: 0, y: 8)
                     
                     VStack(spacing: 16) {
@@ -144,6 +148,16 @@ struct PhotoView: View {
                         .fill(Color.white)
                         .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                 )
+                .onChange(of: caption) { _, newValue in
+                    // Limit to max length
+                    if newValue.count > Validation.maxCaptionLength {
+                        caption = String(newValue.prefix(Validation.maxCaptionLength))
+                    }
+                }
+            
+            Text("\(caption.count)/\(Validation.maxCaptionLength) characters")
+                .font(.system(size: 11))
+                .foregroundColor(caption.count > Validation.maxCaptionLength ? .red : AppTheme.textSecondary)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .animation(.spring(), value: selectedImage != nil)
@@ -155,7 +169,15 @@ struct PhotoView: View {
             if selectedImage == nil {
                 // Camera and gallery buttons
                 HStack(spacing: 16) {
-                    Button(action: { showCamera = true }) {
+                    Button(action: {
+                        // Check if camera is available (not available in simulator)
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            showCamera = true
+                        } else {
+                            // Camera not available (simulator) - use photo library instead
+                            showImagePicker = true
+                        }
+                    }) {
                         VStack(spacing: 8) {
                             ZStack {
                                 Circle()
@@ -281,11 +303,14 @@ struct PhotoView: View {
                     contentType: .photo
                 )
                 content.imageData = image.jpegData(compressionQuality: 0.7)
-                content.caption = caption.isEmpty ? nil : caption
+                // Validate and sanitize caption
+                content.caption = Validation.validateCaption(caption)
                 
                 try await firebaseService.sendContent(content)
                 
+                // Refresh partner content immediately after sending
                 await MainActor.run {
+                    firebaseService.refreshPartnerContent()
                     isSending = false
                     showSuccess = true
                     selectedImage = nil

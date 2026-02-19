@@ -9,6 +9,7 @@ struct AppUser: Codable, Identifiable {
     var partnerCode: String
     var createdAt: Date
     var anniversaryDate: Date?
+    var profileImageUrl: String?
     
     init(id: String, name: String) {
         self.id = id
@@ -100,6 +101,19 @@ struct Memory: Codable, Identifiable {
     var title: String?
 }
 
+// MARK: - Streak Data
+struct StreakData: Codable {
+    var currentStreak: Int
+    var lastStreakDate: Date?
+    var longestStreak: Int
+    
+    init() {
+        self.currentStreak = 0
+        self.lastStreakDate = nil
+        self.longestStreak = 0
+    }
+}
+
 // MARK: - App State
 class AppState: ObservableObject {
     @Published var currentUser: AppUser?
@@ -110,7 +124,9 @@ class AppState: ObservableObject {
     
     // User defaults keys
     private let userDefaultsKey = "currentUser"
+    private let partnerKey = "partner"
     private let onboardedKey = "isOnboarded"
+    private let streakKey = "streakData"
     
     init() {
         loadUser()
@@ -121,6 +137,13 @@ class AppState: ObservableObject {
            let user = try? JSONDecoder().decode(AppUser.self, from: data) {
             currentUser = user
         }
+        
+        // Load partner if it exists
+        if let data = UserDefaults.standard.data(forKey: partnerKey),
+           let partner = try? JSONDecoder().decode(AppUser.self, from: data) {
+            self.partner = partner
+        }
+        
         isOnboarded = UserDefaults.standard.bool(forKey: onboardedKey)
     }
     
@@ -128,6 +151,13 @@ class AppState: ObservableObject {
         currentUser = user
         if let data = try? JSONEncoder().encode(user) {
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
+        }
+    }
+    
+    func savePartner(_ partner: AppUser) {
+        self.partner = partner
+        if let data = try? JSONEncoder().encode(partner) {
+            UserDefaults.standard.set(data, forKey: partnerKey)
         }
     }
     
@@ -141,6 +171,7 @@ class AppState: ObservableObject {
         partner = nil
         isOnboarded = false
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: partnerKey)
         UserDefaults.standard.set(false, forKey: onboardedKey)
     }
 }
@@ -152,6 +183,7 @@ struct WidgetData: Codable {
     var noteText: String?
     var statusEmoji: String?
     var statusText: String?
+    var caption: String?  // For photos
     var senderName: String
     var timestamp: Date
     
@@ -192,5 +224,11 @@ extension Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         return formatter.string(from: self)
+    }
+    
+    func daysSince(_ date: Date) -> Int {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: date, to: self)
+        return components.day ?? 0
     }
 }

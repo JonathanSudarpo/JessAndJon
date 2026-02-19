@@ -5,6 +5,13 @@ struct ContentView: View {
     @EnvironmentObject var firebaseService: FirebaseService
     @State private var selectedTab = 0
     @State private var showPartnerWidget = false
+    @State private var showProfile = false
+    
+    // Timer for periodic refresh (every 10 seconds)
+    let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+    
+    // Timer for periodic user/partner sync (every 15 seconds) - for anniversary date, etc.
+    let syncTimer = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
     
     var body: some View {
         ZStack {
@@ -40,6 +47,64 @@ struct ContentView: View {
             PartnerWidgetView()
                 .environmentObject(firebaseService)
         }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+                .environmentObject(appState)
+                .environmentObject(firebaseService)
+        }
+        .onAppear {
+            // Set up real-time listener for instant updates
+            firebaseService.setupContentListener()
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            // Refresh when switching tabs (listener handles real-time, but refresh ensures we have latest)
+            firebaseService.refreshPartnerContent()
+            
+            // Sync user/partner data when switching to Memories tab (for anniversary date)
+            if newTab == 3 { // Memories tab
+                Task {
+                    do {
+                        let (user, partner) = try await firebaseService.syncUserAndPartner()
+                        await MainActor.run {
+                            if let user = user {
+                                appState.saveUser(user)
+                            }
+                            if let partner = partner {
+                                appState.savePartner(partner)
+                            }
+                        }
+                    } catch {
+                        // Silently fail - sync is best effort
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Re-setup listener when app comes to foreground
+            firebaseService.setupContentListener()
+        }
+        .onReceive(refreshTimer) { _ in
+            // Periodic refresh as backup (real-time listener should handle most updates)
+            firebaseService.refreshPartnerContent()
+        }
+        .onReceive(syncTimer) { _ in
+            // Periodic sync of user and partner data (for anniversary date, profile changes, etc.)
+            Task {
+                do {
+                    let (user, partner) = try await firebaseService.syncUserAndPartner()
+                    await MainActor.run {
+                        if let user = user {
+                            appState.saveUser(user)
+                        }
+                        if let partner = partner {
+                            appState.savePartner(partner)
+                        }
+                    }
+                } catch {
+                    // Silently fail - periodic sync is best effort
+                }
+            }
+        }
     }
     
     // MARK: - Header View
@@ -47,21 +112,56 @@ struct ContentView: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Jess & Jon")
+                    Text("Lovance")
                         .font(.appTitle)
                         .foregroundStyle(AppTheme.mainGradient)
                     
-                    if let latest = firebaseService.partnerContent {
-                        Text("\(latest.senderName) • \(latest.timestamp.timeAgo)")
-                            .font(.appCaption)
-                            .foregroundColor(AppTheme.textSecondary)
+                    HStack(spacing: 8) {
+                        if let latest = firebaseService.partnerContent {
+                            Text("\(latest.senderName) • \(latest.timestamp.timeAgo)")
+                                .font(.appCaption)
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                        
+                        if let user = appState.currentUser, let anniversary = user.anniversaryDate {
+                            Text("•")
+                                .font(.appCaption)
+                                .foregroundColor(AppTheme.textSecondary)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(AppTheme.accentPink)
+                                Text("\(Date().daysSince(anniversary))")
+                                    .font(.appCaption)
+                                    .foregroundColor(AppTheme.accentPink)
+                            }
+                        }
+                        
+                        // Streak display
+                        let streak = firebaseService.getStreak()
+                        if streak.currentStreak > 0 {
+                            Text("•")
+                                .font(.appCaption)
+                                .foregroundColor(AppTheme.textSecondary)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppTheme.heartRed)
+                                
+                                Text("\(streak.currentStreak)")
+                                    .font(.appCaption)
+                                    .foregroundColor(AppTheme.heartRed)
+                            }
+                        }
                     }
                 }
                 
                 Spacer()
                 
-                // Partner widget preview button
-                Button(action: { showPartnerWidget = true }) {
+                // Profile button
+                Button(action: { showProfile = true }) {
                     ZStack {
                         Circle()
                             .fill(AppTheme.cardGradient)
@@ -69,10 +169,18 @@ struct ContentView: View {
                             .shadow(color: AppTheme.accentPink.opacity(0.3), radius: 8, x: 0, y: 4)
                         
                         if let latest = firebaseService.partnerContent {
-                            Text(latest.statusEmoji ?? "💕")
-                                .font(.system(size: 24))
+                            // Show status emoji if available, otherwise show heart symbol
+                            if let emoji = latest.statusEmoji {
+                                Text(emoji)
+                                    .font(.system(size: 24))
+                            } else {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(AppTheme.mainGradient)
+                            }
                         } else {
                             Image(systemName: "heart.fill")
+                                .font(.system(size: 20))
                                 .foregroundStyle(AppTheme.mainGradient)
                         }
                     }
@@ -112,7 +220,7 @@ struct ContentView: View {
                                     .foregroundColor(AppTheme.accentPink)
                             )
                     }
-                case .note, .drawing:
+                case .note:
                     RoundedRectangle(cornerRadius: 10)
                         .fill(AppTheme.lavender.opacity(0.5))
                         .frame(width: 44, height: 44)
@@ -120,10 +228,33 @@ struct ContentView: View {
                             Image(systemName: "note.text")
                                 .foregroundColor(AppTheme.accentPurple)
                         )
+                case .drawing:
+                    if let drawingData = content.drawingData, let uiImage = UIImage(data: drawingData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(AppTheme.lavender.opacity(0.5))
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Image(systemName: "pencil.tip")
+                                    .foregroundColor(AppTheme.accentPurple)
+                            )
+                    }
                 case .status:
-                    Text(content.statusEmoji ?? "💕")
-                        .font(.system(size: 32))
-                        .frame(width: 44, height: 44)
+                    if let emoji = content.statusEmoji {
+                        Text(emoji)
+                            .font(.system(size: 32))
+                            .frame(width: 44, height: 44)
+                    } else {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(AppTheme.accentPink)
+                            .frame(width: 44, height: 44)
+                    }
                 }
             }
             

@@ -1,8 +1,12 @@
 import SwiftUI
+import OSLog
 
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var firebaseService: FirebaseService
+    @StateObject private var authService = AuthService.shared
+    
+    private let logger = Logger(subsystem: "com.jessandjon.app", category: "OnboardingView")
     
     @State private var currentPage = 0
     @State private var userName = ""
@@ -12,6 +16,7 @@ struct OnboardingView: View {
     @State private var isConnecting = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var skipAuth = false
     
     // Animation states
     @State private var heartScale = 1.0
@@ -26,11 +31,43 @@ struct OnboardingView: View {
             floatingHearts
             
             VStack {
+                // Back button (show on all pages except welcome)
+                if currentPage > 0 {
+                    HStack {
+                        Button(action: goBack) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Back")
+                                    .font(.appBody)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.2))
+                            )
+                        }
+                        .padding(.leading, 20)
+                        .padding(.top, 10)
+                        
+                        Spacer()
+                    }
+                }
+                
                 if currentPage == 0 {
                     welcomePage
                 } else if currentPage == 1 {
-                    namePage
+                    // Only show login page if not already authenticated
+                    if authService.isAuthenticated {
+                        namePage
+                    } else {
+                        loginPage
+                    }
                 } else if currentPage == 2 {
+                    namePage
+                } else if currentPage == 3 {
                     connectPage
                 }
             }
@@ -40,6 +77,19 @@ struct OnboardingView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            // If user is already authenticated, skip login page and welcome page
+            if authService.isAuthenticated {
+                // Check if user already has a name set (partially onboarded)
+                if let user = appState.currentUser, !user.name.isEmpty {
+                    // User has a name, go to connect page
+                    currentPage = 3
+                } else {
+                    // No name yet, go to name page
+                    currentPage = 2
+                }
+            }
         }
     }
     
@@ -133,7 +183,7 @@ struct OnboardingView: View {
             }
             
             VStack(spacing: 16) {
-                Text("Jess & Jon")
+                Text("Lovance")
                     .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .shadow(color: AppTheme.accentPurple.opacity(0.5), radius: 10, x: 0, y: 5)
@@ -148,7 +198,12 @@ struct OnboardingView: View {
             
             Button(action: {
                 withAnimation(.spring(response: 0.5)) {
-                    currentPage = 1
+                    // If already authenticated, skip login page
+                    if authService.isAuthenticated {
+                        currentPage = 2 // Go straight to name page
+                    } else {
+                        currentPage = 1 // Go to login page
+                    }
                 }
             }) {
                 HStack(spacing: 8) {
@@ -158,9 +213,30 @@ struct OnboardingView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             
+            // Skip login option (for testing/development)
+            Button(action: {
+                skipAuth = true
+                withAnimation(.spring(response: 0.5)) {
+                    currentPage = 2 // Skip to name page
+                }
+            }) {
+                Text("Continue without account")
+                    .font(.appCaption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.top, 8)
+            
             Spacer()
                 .frame(height: 40)
         }
+    }
+    
+    // MARK: - Login Page
+    private var loginPage: some View {
+        LoginView()
+            .environmentObject(authService)
+            .environmentObject(appState)
+            .environmentObject(firebaseService)
     }
     
     // MARK: - Name Page
@@ -197,7 +273,7 @@ struct OnboardingView: View {
             HStack(spacing: 16) {
                 Button(action: {
                     withAnimation(.spring(response: 0.5)) {
-                        currentPage = 0
+                        currentPage = skipAuth ? 0 : 1
                     }
                 }) {
                     Image(systemName: "chevron.left")
@@ -359,7 +435,7 @@ struct OnboardingView: View {
                 
                 Button(action: {
                     // Skip for now - can connect later
-                    firebaseService.generateMockContent()
+                    // Don't generate mock data - wait for real partner connection
                     appState.completeOnboarding()
                 }) {
                     Text("Skip for now")
@@ -375,14 +451,42 @@ struct OnboardingView: View {
     
     // MARK: - Actions
     
+    private func goBack() {
+        if currentPage == 1 {
+            // If on login page, sign out to go back to LoginView
+            Task {
+                do {
+                    try authService.signOut()
+                    appState.signOut()
+                    firebaseService.clearAllContent()
+                    // Root view will automatically show LoginView after sign out
+                } catch {
+                    logger.error("Error signing out: \(error.localizedDescription, privacy: .public)")
+                    // If sign out fails, just go back to welcome page
+                    await MainActor.run {
+                        withAnimation {
+                            currentPage = 0
+                        }
+                    }
+                }
+            }
+        } else {
+            // Otherwise, just go back one page
+            withAnimation {
+                currentPage = max(0, currentPage - 1)
+            }
+        }
+    }
+    
     private func createUserAndContinue() async {
         do {
-            let user = try await firebaseService.createUser(name: userName.trimmingCharacters(in: .whitespaces))
+            // Validation is handled in createUser, but trim whitespace first
+            let user = try await firebaseService.createUser(name: userName)
             appState.saveUser(user)
             generatedCode = user.partnerCode
             
             withAnimation(.spring(response: 0.5)) {
-                currentPage = 2
+                currentPage = 3 // Go to connect page
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -398,10 +502,18 @@ struct OnboardingView: View {
         
         do {
             if let partner = try await firebaseService.connectWithPartner(code: partnerCode.uppercased(), currentUser: currentUser) {
-                appState.partner = partner
+                // Save partner to app state (which persists it)
+                appState.savePartner(partner)
                 
-                // Generate some mock content for demo
-                firebaseService.generateMockContent()
+                // Also update current user with partner ID
+                var updatedUser = currentUser
+                updatedUser.partnerId = partner.id
+                appState.saveUser(updatedUser)
+                
+                // Also update in Firestore
+                try await firebaseService.updateUser(updatedUser)
+                
+                // Don't generate mock data - wait for real partner to send content
                 
                 // Complete onboarding
                 withAnimation(.spring()) {
@@ -412,7 +524,19 @@ struct OnboardingView: View {
                 showError = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            // Provide user-friendly error messages
+            if let nsError = error as NSError? {
+                switch nsError.code {
+                case -3:
+                    errorMessage = "You already have a partner connected. Please disconnect your current partner first in your profile settings."
+                case -4:
+                    errorMessage = "This user is already connected to another partner."
+                default:
+                    errorMessage = error.localizedDescription
+                }
+            } else {
+                errorMessage = error.localizedDescription
+            }
             showError = true
         }
     }
