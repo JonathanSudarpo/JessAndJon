@@ -2,10 +2,12 @@ import SwiftUI
 
 struct PartnerWidgetView: View {
     @EnvironmentObject var firebaseService: FirebaseService
+    @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
     
     @State private var content: [SharedContent] = []
     @State private var isLoading = true
+    @State private var partnerProfileImage: UIImage?
     
     var body: some View {
         NavigationStack {
@@ -44,6 +46,7 @@ struct PartnerWidgetView: View {
             }
             .onAppear {
                 loadContent()
+                loadPartnerProfileImage()
             }
         }
     }
@@ -129,27 +132,66 @@ struct PartnerWidgetView: View {
     }
     
     private func notePreview(content: SharedContent, isLarge: Bool) -> some View {
-        VStack(spacing: 12) {
-            if isLarge {
-                Image(systemName: "quote.opening")
-                    .font(.system(size: 32))
-                    .foregroundStyle(AppTheme.mainGradient)
+        HStack(spacing: 16) {
+            // Partner's profile picture
+            if let profileImage = partnerProfileImage {
+                Image(uiImage: profileImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.mainGradient, lineWidth: 2)
+                    )
+            } else if let partner = appState.partner {
+                // Fallback to initial if no profile image
+                Circle()
+                    .fill(AppTheme.mainGradient)
+                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                    .overlay(
+                        Text(partner.name.prefix(1).uppercased())
+                            .font(.system(size: isLarge ? 32 : 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    )
+            } else {
+                Circle()
+                    .fill(AppTheme.mainGradient)
+                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: isLarge ? 32 : 20))
+                            .foregroundColor(.white)
+                    )
             }
             
-            Text(content.noteText ?? "")
-                .font(isLarge ? .system(size: 22, weight: .medium, design: .serif) : .appBody)
-                .foregroundColor(AppTheme.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(isLarge ? nil : 3)
-            
-            if isLarge {
-                Image(systemName: "quote.closing")
-                    .font(.system(size: 32))
-                    .foregroundStyle(AppTheme.mainGradient)
+            VStack(alignment: .leading, spacing: 8) {
+                if isLarge {
+                    Image(systemName: "quote.opening")
+                        .font(.system(size: 20))
+                        .foregroundStyle(AppTheme.mainGradient)
+                }
+                
+                Text(content.noteText ?? "")
+                    .font(isLarge ? .system(size: 18, weight: .medium, design: .serif) : .appBody)
+                    .foregroundColor(AppTheme.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(isLarge ? nil : 3)
+                
+                if isLarge {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "quote.closing")
+                            .font(.system(size: 20))
+                            .foregroundStyle(AppTheme.mainGradient)
+                    }
+                }
             }
+            
+            Spacer()
         }
         .frame(maxWidth: .infinity)
-        .padding(isLarge ? 32 : 16)
+        .padding(isLarge ? 24 : 16)
         .background(
             RoundedRectangle(cornerRadius: isLarge ? 20 : 12)
                 .fill(AppTheme.lavender.opacity(0.3))
@@ -158,7 +200,9 @@ struct PartnerWidgetView: View {
     
     private func drawingPreview(content: SharedContent, isLarge: Bool) -> some View {
         Group {
-            if let drawingData = content.drawingData, let uiImage = UIImage(data: drawingData) {
+            // Check drawingData first, then imageData as fallback (for downloaded drawings)
+            let imageData = content.drawingData ?? content.imageData
+            if let data = imageData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()
@@ -300,6 +344,27 @@ struct PartnerWidgetView: View {
     
     // MARK: - Helpers
     
+    private func loadPartnerProfileImage() {
+        guard let partner = appState.partner,
+              let profileImageUrl = partner.profileImageUrl,
+              let url = URL(string: profileImageUrl) else {
+            return
+        }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let image = UIImage(data: data) {
+                    await MainActor.run {
+                        partnerProfileImage = image
+                    }
+                }
+            } catch {
+                print("Failed to load partner profile image: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     private func contentTypeLabel(_ type: ContentType) -> String {
         switch type {
         case .photo: return "📸 Photo"
@@ -342,4 +407,5 @@ struct PartnerWidgetView: View {
 #Preview {
     PartnerWidgetView()
         .environmentObject(FirebaseService.shared)
+        .environmentObject(AppState())
 }

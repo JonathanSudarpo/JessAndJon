@@ -7,6 +7,7 @@ struct NotesView: View {
     @State private var noteText = ""
     @State private var showDrawingCanvas = false
     @State private var currentDrawing: UIImage?
+    @State private var drawingCaption = ""
     @State private var isSending = false
     @State private var showSuccess = false
     @State private var selectedQuickNote: String?
@@ -77,13 +78,18 @@ struct NotesView: View {
     // MARK: - Mode Selector
     private var modeSelectorView: some View {
         HStack(spacing: 0) {
-            modeButton(title: "Text", icon: "text.cursor", isSelected: !showDrawingCanvas) {
+            // Text mode is selected when there's no drawing and showDrawingCanvas is false
+            modeButton(title: "Text", icon: "text.cursor", isSelected: currentDrawing == nil && !showDrawingCanvas) {
                 withAnimation(.spring(response: 0.3)) {
                     showDrawingCanvas = false
+                    // Clear drawing if switching to text mode
+                    currentDrawing = nil
+                    drawingCaption = ""
                 }
             }
             
-            modeButton(title: "Draw", icon: "pencil.tip", isSelected: showDrawingCanvas) {
+            // Draw mode is selected when there's a drawing OR showDrawingCanvas is true
+            modeButton(title: "Draw", icon: "pencil.tip", isSelected: currentDrawing != nil || showDrawingCanvas) {
                 withAnimation(.spring(response: 0.3)) {
                     showDrawingCanvas = true
                 }
@@ -181,31 +187,62 @@ struct NotesView: View {
     private var drawingView: some View {
         VStack(spacing: 16) {
             if let drawing = currentDrawing {
-                // Show drawing preview
-                ZStack {
-                    Image(uiImage: drawing)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 250)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(AppTheme.mainGradient, lineWidth: 2)
-                        )
-                        .shadow(color: AppTheme.accentPink.opacity(0.2), radius: 15, x: 0, y: 8)
-                    
-                    // Edit button
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button(action: { currentDrawing = nil }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.white, Color.black.opacity(0.5))
+                // Show drawing preview with caption field
+                VStack(spacing: 12) {
+                    ZStack {
+                        Image(uiImage: drawing)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 250)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(AppTheme.mainGradient, lineWidth: 2)
+                            )
+                            .shadow(color: AppTheme.accentPink.opacity(0.2), radius: 15, x: 0, y: 8)
+                        
+                        // Edit button
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button(action: { 
+                                    currentDrawing = nil
+                                    drawingCaption = ""
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 28))
+                                        .foregroundStyle(.white, Color.black.opacity(0.5))
+                                }
+                                .padding(8)
                             }
-                            .padding(8)
+                            Spacer()
                         }
-                        Spacer()
+                    }
+                    
+                    // Caption field for drawing
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Add a caption")
+                            .font(.appCaption)
+                            .foregroundColor(AppTheme.textSecondary)
+                        
+                        TextField("Say something about your drawing...", text: $drawingCaption)
+                            .font(.appBody)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.white)
+                                    .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
+                            )
+                            .onChange(of: drawingCaption) { _, newValue in
+                                // Limit to max length
+                                if newValue.count > Validation.maxCaptionLength {
+                                    drawingCaption = String(newValue.prefix(Validation.maxCaptionLength))
+                                }
+                            }
+                        
+                        Text("\(drawingCaption.count)/\(Validation.maxCaptionLength) characters")
+                            .font(.system(size: 11))
+                            .foregroundColor(drawingCaption.count > Validation.maxCaptionLength ? .red : AppTheme.textSecondary)
                     }
                 }
             } else {
@@ -256,7 +293,13 @@ struct NotesView: View {
                 ForEach(quickNotes, id: \.self) { note in
                     Button(action: {
                         withAnimation(.spring(response: 0.3)) {
-                            noteText = note
+                            if currentDrawing != nil {
+                                // If drawing exists, use quick note as caption
+                                drawingCaption = note
+                            } else {
+                                // If text note mode, use as note text
+                                noteText = note
+                            }
                             selectedQuickNote = note
                         }
                     }) {
@@ -355,6 +398,10 @@ struct NotesView: View {
                 
                 if let drawing = currentDrawing {
                     content.drawingData = drawing.pngData()
+                    // Add caption if provided
+                    if !drawingCaption.isEmpty {
+                        content.caption = Validation.validateCaption(drawingCaption)
+                    }
                 } else {
                     // Validate and sanitize note text
                     do {
@@ -379,6 +426,7 @@ struct NotesView: View {
                     showSuccess = true
                     noteText = ""
                     currentDrawing = nil
+                    drawingCaption = ""
                     selectedQuickNote = nil
                 }
             } catch {

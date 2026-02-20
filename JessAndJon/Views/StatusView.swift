@@ -322,6 +322,10 @@ struct StatusView: View {
                     firebaseService.refreshPartnerContent()
                     isSending = false
                     showSuccess = true
+                    // Clear custom status fields
+                    customStatus = ""
+                    customEmoji = "💭"
+                    selectedStatus = nil
                 }
             } catch {
                 await MainActor.run {

@@ -18,7 +18,9 @@ struct LoveWidgetProvider: TimelineProvider {
         let widgetData = loadWidgetData()
         let entry = LoveWidgetEntry(date: currentDate, widgetData: widgetData)
         
-        // Refresh every 15 minutes
+        // Refresh every 15 minutes as a fallback
+        // Primary updates happen via reloadTimelines() when new content arrives
+        // This ensures widget updates even if reloadTimelines() is throttled by iOS
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         
@@ -26,11 +28,15 @@ struct LoveWidgetProvider: TimelineProvider {
     }
     
     private func loadWidgetData() -> WidgetData {
+        // Force synchronization to ensure we have the latest data
         guard let sharedDefaults = UserDefaults(suiteName: "group.com.jessandjon.app") else {
             // App Group not configured - return placeholder
             print("⚠️ Widget: App Group not configured")
             return WidgetData.placeholder
         }
+        
+        // Force synchronization to get latest data
+        sharedDefaults.synchronize()
         
         guard let data = sharedDefaults.data(forKey: "widgetData") else {
             // No widget data saved yet - return placeholder
@@ -224,7 +230,25 @@ struct LoveWidgetEntryView: View {
             } else {
                 photoPlaceholder
             }
-        case .note, .drawing:
+        case .drawing:
+            // Drawings should show the image like photos
+            if let imageData = entry.widgetData.imageData,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.2))
+                    
+                    Image(systemName: "pencil.tip")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white)
+                }
+            }
+        case .note:
             notePlaceholder
         case .status:
             statusEmoji

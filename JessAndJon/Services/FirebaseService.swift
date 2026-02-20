@@ -545,12 +545,23 @@ class FirebaseService: ObservableObject {
             do {
                 if let downloadedImage = try await downloadImage(from: imageUrl),
                    let imageData = downloadedImage.jpegData(compressionQuality: 0.7) {
-                    // Set image data on content
-                    content.imageData = imageData
+                    // Set image data on content based on content type
+                    if content.contentType == .drawing {
+                        // For drawings, store in drawingData
+                        content.drawingData = imageData
+                        // Also set imageData for widget compatibility
+                        content.imageData = imageData
+                    } else {
+                        // For photos, store in imageData
+                        content.imageData = imageData
+                    }
                     
                     // Also update local cache
                     var allContent = loadAllContent()
                     if let index = allContent.firstIndex(where: { $0.id == content.id }) {
+                        if content.contentType == .drawing {
+                            allContent[index].drawingData = imageData
+                        }
                         allContent[index].imageData = imageData
                         saveAllContent(allContent)
                     } else {
@@ -794,8 +805,11 @@ class FirebaseService: ObservableObject {
         }
         
         // Compress and resize image data for widget (UserDefaults has size limits ~1MB)
+        // For drawings, use drawingData; for photos, use imageData
+        let sourceImageData = content.contentType == .drawing ? content.drawingData : content.imageData
+        
         var compressedImageData: Data? = nil
-        if let imageData = content.imageData,
+        if let imageData = sourceImageData,
            let uiImage = UIImage(data: imageData) {
             
             // Resize image to max 800x800 for widget (much smaller file size)

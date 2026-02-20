@@ -78,8 +78,17 @@ struct MemoriesView: View {
             anniversaryDatePicker
         }
         .sheet(item: $selectedContent) { content in
-            if content.contentType == .photo {
-                PhotoDetailView(content: content)
+            Group {
+                switch content.contentType {
+                case .photo:
+                    PhotoDetailView(content: content)
+                case .note:
+                    NoteDetailView(content: content)
+                case .drawing:
+                    DrawingDetailView(content: content)
+                case .status:
+                    StatusDetailView(content: content)
+                }
             }
         }
         .onAppear {
@@ -380,14 +389,10 @@ struct MemoriesView: View {
             GridItem(.flexible())
         ], spacing: 8) {
             ForEach(filteredMemories) { memory in
-                if memory.contentType == .photo {
-                    Button(action: { selectedContent = memory }) {
-                        memoryCell(memory: memory)
-                    }
-                    .buttonStyle(.plain)
-                } else {
+                Button(action: { selectedContent = memory }) {
                     memoryCell(memory: memory)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
