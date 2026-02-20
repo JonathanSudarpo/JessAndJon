@@ -11,6 +11,8 @@ struct NotesView: View {
     @State private var isSending = false
     @State private var showSuccess = false
     @State private var selectedQuickNote: String?
+    @State private var showNoPartnerAlert = false
+    @State private var showProfile = false
     
     // Quick notes
     let quickNotes = [
@@ -72,6 +74,19 @@ struct NotesView: View {
         }
         .sheet(isPresented: $showDrawingCanvas) {
             DrawingCanvasSheet(drawing: $currentDrawing)
+        }
+        .alert("Connect with Partner", isPresented: $showNoPartnerAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Go to Profile") {
+                showProfile = true
+            }
+        } message: {
+            Text("You need to connect with a partner before you can send notes. Go to your profile to connect!")
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+                .environmentObject(appState)
+                .environmentObject(firebaseService)
         }
     }
     
@@ -383,6 +398,12 @@ struct NotesView: View {
     
     // MARK: - Actions
     private func sendNote() {
+        // Check if user has a partner
+        guard appState.partner != nil else {
+            showNoPartnerAlert = true
+            return
+        }
+        
         guard let currentUser = appState.currentUser,
               !noteText.isEmpty || currentDrawing != nil else { return }
         

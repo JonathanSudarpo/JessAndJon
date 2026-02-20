@@ -161,6 +161,13 @@ class AppState: ObservableObject {
         }
     }
     
+    func clearPartner() {
+        self.partner = nil
+        UserDefaults.standard.removeObject(forKey: partnerKey)
+        // Explicitly notify observers to ensure view updates
+        objectWillChange.send()
+    }
+    
     func completeOnboarding() {
         isOnboarded = true
         UserDefaults.standard.set(true, forKey: onboardedKey)

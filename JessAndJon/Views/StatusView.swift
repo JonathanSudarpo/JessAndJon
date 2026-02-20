@@ -12,6 +12,8 @@ struct StatusView: View {
     @State private var isSending = false
     @State private var showSuccess = false
     @State private var animatingStatusId: UUID?
+    @State private var showNoPartnerAlert = false
+    @State private var showProfile = false
     
     var body: some View {
         ScrollView {
@@ -55,6 +57,19 @@ struct StatusView: View {
         }
         .sheet(isPresented: $showEmojiPicker) {
             EmojiPickerView(selectedEmoji: $customEmoji)
+        }
+        .alert("Connect with Partner", isPresented: $showNoPartnerAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Go to Profile") {
+                showProfile = true
+            }
+        } message: {
+            Text("You need to connect with a partner before you can update your status. Go to your profile to connect!")
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+                .environmentObject(appState)
+                .environmentObject(firebaseService)
         }
     }
     
@@ -293,6 +308,12 @@ struct StatusView: View {
     
     // MARK: - Actions
     private func sendStatus() {
+        // Check if user has a partner
+        guard appState.partner != nil else {
+            showNoPartnerAlert = true
+            return
+        }
+        
         guard let currentUser = appState.currentUser,
               selectedStatus != nil || !customStatus.isEmpty else { return }
         

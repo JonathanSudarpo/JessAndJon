@@ -61,12 +61,27 @@ struct OnboardingView: View {
                 } else if currentPage == 1 {
                     // Only show login page if not already authenticated
                     if authService.isAuthenticated {
-                        namePage
+                        // Check if user already has a name - if so, skip to connect
+                        let hasName = (appState.currentUser?.name.isEmpty == false) || 
+                                     (authService.currentUser?.displayName?.isEmpty == false)
+                        if hasName {
+                            connectPage
+                        } else {
+                            namePage
+                        }
                     } else {
                         loginPage
                     }
                 } else if currentPage == 2 {
-                    namePage
+                    // Only show name page if user doesn't have a name
+                    let hasName = (appState.currentUser?.name.isEmpty == false) || 
+                                 (authService.currentUser?.displayName?.isEmpty == false)
+                    if hasName {
+                        // User has a name, skip to connect page
+                        connectPage
+                    } else {
+                        namePage
+                    }
                 } else if currentPage == 3 {
                     connectPage
                 }
@@ -79,17 +94,35 @@ struct OnboardingView: View {
             Text(errorMessage)
         }
         .onAppear {
-            // If user is already authenticated, skip login page and welcome page
+            // Immediately check and set the correct page on appear
             if authService.isAuthenticated {
-                // Check if user already has a name set (partially onboarded)
-                if let user = appState.currentUser, !user.name.isEmpty {
-                    // User has a name, go to connect page
-                    currentPage = 3
+                let hasName = (appState.currentUser?.name.isEmpty == false) || 
+                             (authService.currentUser?.displayName?.isEmpty == false)
+                
+                if hasName {
+                    // User has a name - ensure they exist in Firestore and show connect page
+                    if appState.currentUser?.partnerCode == nil {
+                        // Need to create user in Firestore first
+                        Task {
+                            await ensureUserCreatedInFirestore()
+                        }
+                    } else {
+                        // User exists in Firestore - go straight to connect page
+                        currentPage = 3
+                    }
                 } else {
-                    // No name yet, go to name page
+                    // No name - go to name page
                     currentPage = 2
                 }
             }
+        }
+        .onChange(of: appState.currentUser?.name) { _, _ in
+            // React to changes in user name (e.g., after handleAuthSuccess completes)
+            checkAndUpdatePage()
+        }
+        .onChange(of: authService.currentUser?.displayName) { _, _ in
+            // React to changes in Firebase Auth displayName
+            checkAndUpdatePage()
         }
     }
     
@@ -267,39 +300,32 @@ struct OnboardingView: View {
                     )
                     .padding(.horizontal, 40)
             }
+            .onAppear {
+                // Pre-populate name from Firebase Auth displayName if available and userName is empty
+                if userName.isEmpty, let displayName = authService.currentUser?.displayName, !displayName.isEmpty {
+                    userName = displayName
+                }
+                // Also check appState
+                if userName.isEmpty, let appUserName = appState.currentUser?.name, !appUserName.isEmpty {
+                    userName = appUserName
+                }
+            }
             
             Spacer()
             
-            HStack(spacing: 16) {
-                Button(action: {
-                    withAnimation(.spring(response: 0.5)) {
-                        currentPage = skipAuth ? 0 : 1
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.2))
-                        )
+            Button(action: {
+                Task {
+                    await createUserAndContinue()
                 }
-                
-                Button(action: {
-                    Task {
-                        await createUserAndContinue()
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Text("Continue")
-                        Image(systemName: "arrow.right")
-                    }
+            }) {
+                HStack(spacing: 8) {
+                    Text("Continue")
+                    Image(systemName: "arrow.right")
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(userName.trimmingCharacters(in: .whitespaces).isEmpty)
-                .opacity(userName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.6 : 1)
             }
+            .buttonStyle(PrimaryButtonStyle())
+            .disabled(userName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .opacity(userName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.6 : 1)
             
             Spacer()
                 .frame(height: 40)
@@ -451,6 +477,85 @@ struct OnboardingView: View {
     
     // MARK: - Actions
     
+    private func checkAndUpdatePage() {
+        // If user is already authenticated, skip login page and welcome page
+        if authService.isAuthenticated {
+            // Check if user already has a name set (partially onboarded)
+            // First check appState, then check Firebase Auth displayName
+            let hasName = (appState.currentUser?.name.isEmpty == false) || 
+                         (authService.currentUser?.displayName?.isEmpty == false)
+            
+            if hasName {
+                // User has a name - ensure they exist in Firestore (for partner code)
+                // If they don't exist in Firestore yet, create them
+                if appState.currentUser?.partnerCode == nil {
+                    // User doesn't have a partner code yet - need to create in Firestore
+                    Task {
+                        await ensureUserCreatedInFirestore()
+                    }
+                } else {
+                    // User exists in Firestore and has a partner code - go to connect page
+                    if currentPage != 3 {
+                        withAnimation {
+                            currentPage = 3
+                        }
+                    }
+                }
+            } else {
+                // Pre-populate name from Firebase Auth if available
+                if let displayName = authService.currentUser?.displayName, !displayName.isEmpty {
+                    userName = displayName
+                }
+                // Also check appState
+                if userName.isEmpty, let appUserName = appState.currentUser?.name, !appUserName.isEmpty {
+                    userName = appUserName
+                }
+                // No name yet, go to name page (but don't go back if already past it)
+                if currentPage < 2 {
+                    withAnimation {
+                        currentPage = 2
+                    }
+                }
+            }
+        }
+    }
+    
+    private func ensureUserCreatedInFirestore() async {
+        // Get the name from displayName or appState
+        let nameToUse: String = {
+            if let displayName = authService.currentUser?.displayName, !displayName.isEmpty {
+                return displayName
+            } else if let appUserName = appState.currentUser?.name, !appUserName.isEmpty {
+                return appUserName
+            } else {
+                return "User"
+            }
+        }()
+        
+        do {
+            // Create user in Firestore (this will generate partner code)
+            let user = try await firebaseService.createUser(name: nameToUse)
+            await MainActor.run {
+                appState.saveUser(user)
+                generatedCode = user.partnerCode
+                // Now go to connect page
+                withAnimation {
+                    currentPage = 3
+                }
+            }
+        } catch {
+            logger.error("Error creating user in Firestore: \(error.localizedDescription, privacy: .public)")
+            // On error, still show connect page (user might already exist)
+            await MainActor.run {
+                if currentPage != 3 {
+                    withAnimation {
+                        currentPage = 3
+                    }
+                }
+            }
+        }
+    }
+    
     private func goBack() {
         if currentPage == 1 {
             // If on login page, sign out to go back to LoginView
@@ -480,8 +585,13 @@ struct OnboardingView: View {
     
     private func createUserAndContinue() async {
         do {
+            // If name is empty but we have displayName from Firebase Auth, use that
+            let nameToUse = userName.trimmingCharacters(in: .whitespaces).isEmpty 
+                ? (authService.currentUser?.displayName ?? "") 
+                : userName.trimmingCharacters(in: .whitespaces)
+            
             // Validation is handled in createUser, but trim whitespace first
-            let user = try await firebaseService.createUser(name: userName)
+            let user = try await firebaseService.createUser(name: nameToUse)
             appState.saveUser(user)
             generatedCode = user.partnerCode
             

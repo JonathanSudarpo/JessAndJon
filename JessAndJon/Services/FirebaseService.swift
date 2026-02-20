@@ -13,6 +13,7 @@ class FirebaseService: ObservableObject {
     
     @Published var isConnected = false
     @Published var partnerContent: SharedContent?
+    @Published var streakData: StreakData = StreakData()
     
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
@@ -30,6 +31,8 @@ class FirebaseService: ObservableObject {
             logger.warning("App Group 'group.com.jessandjon.app' not configured - using standard UserDefaults")
         }
         loadLocalContent()
+        // Load initial streak data
+        streakData = getStreak()
     }
     
     deinit {
@@ -270,22 +273,35 @@ class FirebaseService: ObservableObject {
         partner.partnerId = currentUser.id
         partner.partnerCode = partnerDoc.data()["partnerCode"] as? String ?? ""
         
-        // Load partner's additional data
-        if let anniversaryTimestamp = partnerDoc.data()["anniversaryDate"] as? Timestamp {
-            partner.anniversaryDate = anniversaryTimestamp.dateValue()
-        }
+        // Load partner's profile image (but NOT anniversary date - start fresh for new relationship)
         if let profileImageUrl = partnerDoc.data()["profileImageUrl"] as? String {
             partner.profileImageUrl = profileImageUrl
         }
         
-        // Update both users in Firestore with partner IDs
+        // Clear anniversary date from both users when connecting (start fresh for new relationship)
+        // Also clear any existing anniversary date from current user's local state
+        var updatedCurrentUser = currentUser
+        updatedCurrentUser.anniversaryDate = nil
+        
+        // Update both users in Firestore with partner IDs and clear anniversary dates
         try await db.collection("users").document(currentUser.id).updateData([
-            "partnerId": partner.id
+            "partnerId": partner.id,
+            "anniversaryDate": NSNull()
         ])
         
         try await db.collection("users").document(partner.id).updateData([
-            "partnerId": currentUser.id
+            "partnerId": currentUser.id,
+            "anniversaryDate": NSNull()
         ])
+        
+        // Clear streak data for fresh start (since it's based on content sharing between partners)
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.removeObject(forKey: "streakData")
+        defaults.synchronize()
+        // Update published property to trigger UI refresh
+        Task { @MainActor in
+            streakData = StreakData()
+        }
         
         logger.info("Partner connection established: \(currentUser.id, privacy: .public) <-> \(partner.id, privacy: .public)")
         
@@ -298,16 +314,100 @@ class FirebaseService: ObservableObject {
             throw NSError(domain: "FirebaseService", code: -5, userInfo: [NSLocalizedDescriptionKey: "No partner to disconnect"])
         }
         
-        // Remove partner ID from both users
+        // Step 1: Delete all shared content between the two partners
+        // Query all content where senderId is either current user or partner
+        let contentQuery1 = db.collection("content")
+            .whereField("senderId", isEqualTo: currentUser.id)
+        
+        let contentQuery2 = db.collection("content")
+            .whereField("senderId", isEqualTo: partnerId)
+        
+        let snapshot1 = try await contentQuery1.getDocuments()
+        let snapshot2 = try await contentQuery2.getDocuments()
+        
+        // Collect all content documents to delete
+        var contentToDelete: [String] = []
+        var imageUrlsToDelete: [String] = []
+        
+        // Process current user's content
+        for doc in snapshot1.documents {
+            contentToDelete.append(doc.documentID)
+            // Extract image URLs for deletion from Storage
+            let data = doc.data()
+            if let imageUrl = data["imageUrl"] as? String {
+                imageUrlsToDelete.append(imageUrl)
+            }
+        }
+        
+        // Process partner's content
+        for doc in snapshot2.documents {
+            contentToDelete.append(doc.documentID)
+            // Extract image URLs for deletion from Storage
+            let data = doc.data()
+            if let imageUrl = data["imageUrl"] as? String {
+                imageUrlsToDelete.append(imageUrl)
+            }
+        }
+        
+        // Delete all content documents
+        let batch = db.batch()
+        for docId in contentToDelete {
+            let docRef = db.collection("content").document(docId)
+            batch.deleteDocument(docRef)
+        }
+        try await batch.commit()
+        logger.info("Deleted \(contentToDelete.count) content documents")
+        
+        // Step 2: Delete images from Storage (optional but good practice)
+        for imageUrl in imageUrlsToDelete {
+            do {
+                // Use the Storage URL directly to create a reference
+                let ref = storage.reference(forURL: imageUrl)
+                try await ref.delete()
+                logger.info("Deleted image from Storage: \(imageUrl, privacy: .public)")
+            } catch {
+                // Log but don't fail - image deletion is best effort
+                logger.warning("Failed to delete image from Storage: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        
+        // Step 3: Remove partner ID and anniversary date from both users
         try await db.collection("users").document(currentUser.id).updateData([
-            "partnerId": NSNull()
+            "partnerId": NSNull(),
+            "anniversaryDate": NSNull()
         ])
         
         try await db.collection("users").document(partnerId).updateData([
-            "partnerId": NSNull()
+            "partnerId": NSNull(),
+            "anniversaryDate": NSNull()
         ])
         
-        logger.info("Partner disconnected: \(currentUser.id, privacy: .public) <-> \(partnerId, privacy: .public)")
+        // Step 4: Clear widget data
+        if let defaults = sharedDefaults {
+            defaults.removeObject(forKey: "widgetData")
+            defaults.synchronize()
+        }
+        
+        // Step 5: Clear local content cache
+        clearAllContent()
+        
+        // Step 6: Clear streak data (since it's based on content sharing between partners)
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.removeObject(forKey: "streakData")
+        defaults.synchronize()
+        // Update published property to trigger UI refresh
+        Task { @MainActor in
+            streakData = StreakData()
+        }
+        
+        // Step 7: Remove content listener
+        contentListener?.remove()
+        contentListener = nil
+        
+        // Step 8: Reload widget to show placeholder
+        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+        
+        logger.info("Partner disconnected and all content cleared: \(currentUser.id, privacy: .public) <-> \(partnerId, privacy: .public)")
     }
     
     // MARK: - Content Sharing
@@ -608,6 +708,11 @@ class FirebaseService: ObservableObject {
         return streak
     }
     
+    // Get streak and update published property
+    private func refreshStreak() {
+        streakData = getStreak()
+    }
+    
     private func updateStreak() {
         var streak = getStreak()
         let calendar = Calendar.current
@@ -636,6 +741,10 @@ class FirebaseService: ObservableObject {
         streak.lastStreakDate = today
         streak.longestStreak = max(streak.longestStreak, streak.currentStreak)
         saveStreak(streak)
+        // Update published property to trigger UI refresh
+        Task { @MainActor in
+            streakData = streak
+        }
     }
     
     private func saveStreak(_ streak: StreakData) {

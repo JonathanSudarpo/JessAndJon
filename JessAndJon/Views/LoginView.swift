@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import FirebaseAuth
 
 struct LoginView: View {
     @EnvironmentObject var authService: AuthService
@@ -258,7 +259,84 @@ struct LoginView: View {
         } catch {
             logger.error("Email auth error: \(error.localizedDescription, privacy: .public)")
             await MainActor.run {
-                errorMessage = error.localizedDescription
+                // Provide user-friendly error messages
+                let errorDesc = error.localizedDescription.lowercased()
+                logger.info("Error description (lowercased): \(errorDesc, privacy: .public)")
+                var friendlyMessage: String?
+                
+                // First, try to get Firebase Auth error code
+                if let nsError = error as NSError?,
+                   let authErrorCode = AuthErrorCode(_bridgedNSError: nsError) {
+                    logger.info("Firebase Auth error code: \(authErrorCode.code.rawValue, privacy: .public)")
+                    switch authErrorCode.code {
+                    case .userNotFound:
+                        friendlyMessage = "No account found with this email. Try signing up instead!"
+                    case .wrongPassword:
+                        friendlyMessage = "Incorrect password. Please try again."
+                    case .invalidEmail:
+                        friendlyMessage = "Invalid email address. Please check and try again."
+                    case .userDisabled:
+                        friendlyMessage = "This account has been disabled. Please contact support."
+                    case .networkError:
+                        friendlyMessage = "Network error. Please check your connection and try again."
+                    case .tooManyRequests:
+                        friendlyMessage = "Too many failed attempts. Please try again later."
+                    case .invalidCredential:
+                        // Invalid credential usually means wrong password when user exists
+                        friendlyMessage = "Incorrect password. Please try again."
+                    default:
+                        logger.info("Unhandled error code: \(authErrorCode.code.rawValue, privacy: .public)")
+                        break
+                    }
+                } else {
+                    logger.info("Could not extract AuthErrorCode from error")
+                }
+                
+                // If no friendly message yet, check error description for common patterns
+                // Check more specific patterns first
+                if friendlyMessage == nil {
+                    // Check for "supplied auth credential" errors
+                    // This error can mean user doesn't exist OR wrong password
+                    // Only show "user not found" if it's specifically a userNotFound error code
+                    // Otherwise, it might be a wrong password issue
+                    if errorDesc.contains("supplied auth credential") || 
+                       (errorDesc.contains("supplied") && errorDesc.contains("credential")) ||
+                       (errorDesc.contains("credential") && (errorDesc.contains("malformed") || errorDesc.contains("expired"))) {
+                        logger.info("Matched 'supplied auth credential' pattern")
+                        // Check if this is actually a wrong password by checking the error code
+                        // If it's not userNotFound, it's likely wrong password
+                        if let nsError = error as NSError?,
+                           let authErrorCode = AuthErrorCode(_bridgedNSError: nsError),
+                           authErrorCode.code == .userNotFound {
+                            friendlyMessage = "No account found with this email. Try signing up instead!"
+                        } else {
+                            // Likely wrong password, not user not found
+                            friendlyMessage = "Incorrect email or password. Please try again."
+                        }
+                    } 
+                    // Check for user not found errors
+                    else if errorDesc.contains("user") && (errorDesc.contains("not found") || errorDesc.contains("does not exist")) {
+                        friendlyMessage = "No account found with this email. Try signing up instead!"
+                    } 
+                    // Check for password errors
+                    else if errorDesc.contains("password") || errorDesc.contains("wrong password") || errorDesc.contains("incorrect password") {
+                        friendlyMessage = "Incorrect password. Please try again."
+                    } 
+                    // Check for invalid credential errors
+                    else if errorDesc.contains("credential") && errorDesc.contains("invalid") {
+                        friendlyMessage = "Invalid email or password. Please try again or sign up if you don't have an account."
+                    } 
+                    // Check for invalid email
+                    else if errorDesc.contains("email") && errorDesc.contains("invalid") {
+                        friendlyMessage = "Invalid email address. Please check and try again."
+                    } 
+                    // Fallback to original error message
+                    else {
+                        friendlyMessage = error.localizedDescription
+                    }
+                }
+                
+                errorMessage = friendlyMessage ?? error.localizedDescription
                 showError = true
                 isLoading = false
             }

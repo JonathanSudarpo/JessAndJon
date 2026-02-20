@@ -223,8 +223,7 @@ struct MemoriesView: View {
     private var memoryStats: some View {
         VStack(spacing: 12) {
             // Streak card (full width)
-            let streak = firebaseService.getStreak()
-            if streak.currentStreak > 0 {
+            if firebaseService.streakData.currentStreak > 0 {
                 HStack(spacing: 16) {
                     ZStack {
                         Circle()
@@ -242,12 +241,12 @@ struct MemoriesView: View {
                             .foregroundColor(AppTheme.textSecondary)
                         
                         HStack(spacing: 8) {
-                            Text("\(streak.currentStreak) days 🔥")
+                            Text("\(firebaseService.streakData.currentStreak) days 🔥")
                                 .font(.appSubheadline)
                                 .foregroundColor(AppTheme.heartRed)
                             
-                            if streak.longestStreak > streak.currentStreak {
-                                Text("• Best: \(streak.longestStreak)")
+                            if firebaseService.streakData.longestStreak > firebaseService.streakData.currentStreak {
+                                Text("• Best: \(firebaseService.streakData.longestStreak)")
                                     .font(.appCaption)
                                     .foregroundColor(AppTheme.textSecondary)
                             }

@@ -69,8 +69,11 @@ struct ContentView: View {
                             if let user = user {
                                 appState.saveUser(user)
                             }
+                            // Explicitly set partner - if nil, clear it; if exists, save it
                             if let partner = partner {
                                 appState.savePartner(partner)
+                            } else {
+                                appState.clearPartner()
                             }
                         }
                     } catch {
@@ -96,8 +99,11 @@ struct ContentView: View {
                         if let user = user {
                             appState.saveUser(user)
                         }
+                        // Explicitly set partner - if nil, clear it; if exists, save it
                         if let partner = partner {
                             appState.savePartner(partner)
+                        } else {
+                            appState.clearPartner()
                         }
                     }
                 } catch {
@@ -139,8 +145,7 @@ struct ContentView: View {
                         }
                         
                         // Streak display
-                        let streak = firebaseService.getStreak()
-                        if streak.currentStreak > 0 {
+                        if firebaseService.streakData.currentStreak > 0 {
                             Text("•")
                                 .font(.appCaption)
                                 .foregroundColor(AppTheme.textSecondary)
@@ -150,7 +155,7 @@ struct ContentView: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(AppTheme.heartRed)
                                 
-                                Text("\(streak.currentStreak)")
+                                Text("\(firebaseService.streakData.currentStreak)")
                                     .font(.appCaption)
                                     .foregroundColor(AppTheme.heartRed)
                             }

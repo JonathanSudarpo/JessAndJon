@@ -12,6 +12,8 @@ struct PhotoView: View {
     @State private var isSending = false
     @State private var showSuccess = false
     @State private var selectedItem: PhotosPickerItem?
+    @State private var showNoPartnerAlert = false
+    @State private var showProfile = false
     
     // Animation states
     @State private var pulseAnimation = false
@@ -65,6 +67,19 @@ struct PhotoView: View {
             if showSuccess {
                 successOverlay
             }
+        }
+        .alert("Connect with Partner", isPresented: $showNoPartnerAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Go to Profile") {
+                showProfile = true
+            }
+        } message: {
+            Text("You need to connect with a partner before you can send photos. Go to your profile to connect!")
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+                .environmentObject(appState)
+                .environmentObject(firebaseService)
         }
     }
     
@@ -290,6 +305,12 @@ struct PhotoView: View {
     
     // MARK: - Actions
     private func sendPhoto() {
+        // Check if user has a partner
+        guard appState.partner != nil else {
+            showNoPartnerAlert = true
+            return
+        }
+        
         guard let image = selectedImage,
               let currentUser = appState.currentUser else { return }
         

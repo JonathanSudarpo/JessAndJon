@@ -85,8 +85,11 @@ struct JessAndJonApp: App {
                                     if let user = user {
                                         appState.saveUser(user)
                                     }
+                                    // Explicitly set partner - if nil, clear it; if exists, save it
                                     if let partner = partner {
                                         appState.savePartner(partner)
+                                    } else {
+                                        appState.clearPartner()
                                     }
                                 }
                             } catch {
@@ -134,8 +137,11 @@ struct JessAndJonApp: App {
                         // User exists in Firestore - this is a real user, just missing local data
                         logger.info("User found in Firestore - restoring local data")
                         appState.saveUser(user)
+                        // Explicitly set partner - if nil, clear it; if exists, save it
                         if let partner = partner {
                             appState.savePartner(partner)
+                        } else {
+                            appState.clearPartner()
                         }
                         // Restore onboarding status if user has a name
                         if !user.name.isEmpty {
@@ -167,8 +173,11 @@ struct JessAndJonApp: App {
                     if let user = user {
                         appState.saveUser(user)
                     }
+                    // Explicitly set partner - if nil, clear it; if exists, save it
                     if let partner = partner {
                         appState.savePartner(partner)
+                    } else {
+                        appState.clearPartner()
                     }
                 } catch {
                     logger.error("Failed to sync user/partner: \(error.localizedDescription, privacy: .public)")

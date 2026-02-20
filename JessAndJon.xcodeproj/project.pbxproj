@@ -85,7 +85,7 @@
 		1F2590BF6B45ED6CB9CC0821 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2AF9AD6523FF8D001FFA0BBE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2D028D19725C474F82D3D4CE /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
-		2F68B379FC40FC137902A726 /* Jess & Jon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Jess & Jon.app"; path = Lovance.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2F68B379FC40FC137902A726 /* Lovance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lovance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3562F404EBEA7C37B662248D /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		5A20F42876A86AE1136CCD50 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
 		613403F922C4744F67C5D6C9 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
@@ -207,7 +207,7 @@
 		B150277411C85E337FDC61B8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2F68B379FC40FC137902A726 /* Jess & Jon.app */,
+				2F68B379FC40FC137902A726 /* Lovance.app */,
 				9F7FC3552B4B3C3581E842E6 /* LoveWidgetExtension.appex */,
 			);
 			name = Products;
@@ -250,7 +250,7 @@
 			);
 			name = JessAndJon;
 			productName = JessAndJon;
-			productReference = 2F68B379FC40FC137902A726 /* Jess & Jon.app */;
+			productReference = 2F68B379FC40FC137902A726 /* Lovance.app */;
 			productType = "com.apple.product-type.application";
 		};
 		EF4CD482E2A55B1A9E5E4114 /* LoveWidgetExtension */ = {
@@ -407,7 +407,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
 				PRODUCT_NAME = Lovance;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -504,7 +504,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jessandjon.app;
 				PRODUCT_NAME = Lovance;
 				SWIFT_EMIT_LOC_STRINGS = YES;

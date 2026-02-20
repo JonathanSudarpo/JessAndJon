@@ -19,6 +19,10 @@ struct ProfileView: View {
     @State private var isDisconnecting = false
     @State private var validationError: String? = nil
     @State private var showValidationError = false
+    @State private var partnerCode = ""
+    @State private var isConnecting = false
+    @State private var showConnectError = false
+    @State private var connectErrorMessage = ""
     
     var body: some View {
         NavigationStack {
@@ -36,6 +40,8 @@ struct ProfileView: View {
                     // Partner Section
                     if appState.partner != nil {
                         partnerSection
+                    } else {
+                        connectPartnerSection
                     }
                     
                     // Settings Section
@@ -152,6 +158,11 @@ struct ProfileView: View {
                    } message: {
                        Text("Are you sure you want to disconnect from \(appState.partner?.name ?? "your partner")? You'll need to connect again to share content.")
                    }
+                   .alert("Connection Error", isPresented: $showConnectError) {
+                       Button("OK", role: .cancel) { }
+                   } message: {
+                       Text(connectErrorMessage)
+                   }
             .onAppear {
                 if let user = appState.currentUser {
                     editedName = user.name
@@ -174,8 +185,12 @@ struct ProfileView: View {
                                     loadProfileImage(from: profileImageUrl)
                                 }
                             }
+                            // Explicitly set partner - if nil, clear it; if exists, save it
                             if let partner = partner {
                                 appState.savePartner(partner)
+                            } else {
+                                // No partner in Firestore - clear local state
+                                appState.clearPartner()
                             }
                         }
                     } catch {
@@ -380,6 +395,68 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Connect Partner Section
+    private var connectPartnerSection: some View {
+        VStack(spacing: 16) {
+            Divider()
+                .padding(.vertical, 8)
+            
+            VStack(spacing: 12) {
+                Text("Connect with Partner")
+                    .font(.appSubheadline)
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text("Enter your partner's code to connect")
+                    .font(.appCaption)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                
+                HStack(spacing: 8) {
+                    TextField("XXXXXX", text: $partnerCode)
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .multilineTextAlignment(.center)
+                        .textCase(.uppercase)
+                        .autocapitalization(.allCharacters)
+                        .autocorrectionDisabled()
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white)
+                                .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 4, x: 0, y: 2)
+                        )
+                }
+                .padding(.horizontal, 20)
+                
+                Button(action: {
+                    Task {
+                        await connectWithPartner()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        if isConnecting {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "heart.fill")
+                            Text("Connect")
+                        }
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(partnerCode.count != 6 || isConnecting)
+                .opacity(partnerCode.count != 6 ? 0.6 : 1)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
+            )
+        }
+    }
+    
     // MARK: - Settings Section
     private var settingsSection: some View {
         VStack(spacing: 16) {
@@ -575,12 +652,29 @@ struct ProfileView: View {
             do {
                 try await firebaseService.disconnectPartner(currentUser: user)
                 
-                // Update local state
+                // Sync from Firestore to get updated user data (without partner)
+                let (updatedUser, syncedPartner) = try await firebaseService.syncUserAndPartner()
+                
+                // Update local state - clear everything
                 await MainActor.run {
-                    var updatedUser = user
-                    updatedUser.partnerId = nil
-                    appState.saveUser(updatedUser)
-                    appState.partner = nil
+                    // Clear partner first - use the new method that also removes from UserDefaults
+                    // If sync returned a partner (shouldn't happen after disconnect), clear it anyway
+                    appState.clearPartner()
+                    
+                    // Update user with latest from Firestore (should have partnerId = nil and anniversaryDate = nil)
+                    if let updatedUser = updatedUser {
+                        appState.saveUser(updatedUser)
+                    } else {
+                        // Fallback: manually clear partnerId and anniversaryDate
+                        var userCopy = user
+                        userCopy.partnerId = nil
+                        userCopy.anniversaryDate = nil
+                        appState.saveUser(userCopy)
+                    }
+                    
+                    // Clear all local content cache
+                    firebaseService.clearAllContent()
+                    
                     isDisconnecting = false
                 }
             } catch {
@@ -588,6 +682,61 @@ struct ProfileView: View {
                     isDisconnecting = false
                     print("Failed to disconnect partner: \(error.localizedDescription)")
                 }
+            }
+        }
+    }
+    
+    private func connectWithPartner() async {
+        guard let currentUser = appState.currentUser else { return }
+        
+        isConnecting = true
+        defer { isConnecting = false }
+        
+        do {
+            if let partner = try await firebaseService.connectWithPartner(code: partnerCode.uppercased(), currentUser: currentUser) {
+                // Save partner to app state (which persists it)
+                appState.savePartner(partner)
+                
+                // Sync user from Firestore to get updated state (with cleared anniversary date)
+                let (updatedUser, _) = try await firebaseService.syncUserAndPartner()
+                
+                // Update current user with partner ID and cleared anniversary date
+                if let updatedUser = updatedUser {
+                    appState.saveUser(updatedUser)
+                } else {
+                    // Fallback: manually update
+                    var userCopy = currentUser
+                    userCopy.partnerId = partner.id
+                    userCopy.anniversaryDate = nil
+                    appState.saveUser(userCopy)
+                }
+                
+                // Clear the partner code field
+                await MainActor.run {
+                    partnerCode = ""
+                }
+            } else {
+                await MainActor.run {
+                    connectErrorMessage = "Couldn't find a partner with that code. Please check and try again."
+                    showConnectError = true
+                }
+            }
+        } catch {
+            // Provide user-friendly error messages
+            await MainActor.run {
+                if let nsError = error as NSError? {
+                    switch nsError.code {
+                    case -3:
+                        connectErrorMessage = "You already have a partner connected. Please disconnect your current partner first."
+                    case -4:
+                        connectErrorMessage = "This user is already connected to another partner."
+                    default:
+                        connectErrorMessage = error.localizedDescription
+                    }
+                } else {
+                    connectErrorMessage = error.localizedDescription
+                }
+                showConnectError = true
             }
         }
     }
