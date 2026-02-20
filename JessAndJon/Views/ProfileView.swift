@@ -72,21 +72,56 @@ struct ProfileView: View {
             .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images)
             .onChange(of: selectedItem) { _, newItem in
                 Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        profileImage = uiImage
-                        // Save profile image to Firebase Storage
-                        do {
-                            let imageUrl = try await firebaseService.uploadImage(uiImage)
-                            // Update user profile in Firestore with image URL
-                            if var user = appState.currentUser {
-                                user.profileImageUrl = imageUrl
-                                appState.saveUser(user)
-                                // Also update in Firestore so it syncs
-                                try await firebaseService.updateUser(user)
+                    guard let newItem = newItem else { return }
+                    
+                    do {
+                        guard let data = try? await newItem.loadTransferable(type: Data.self),
+                              let uiImage = UIImage(data: data) else {
+                            await MainActor.run {
+                                validationError = "Failed to load image"
+                                showValidationError = true
                             }
-                        } catch {
-                            print("Error uploading profile image: \(error.localizedDescription)")
+                            return
+                        }
+                        
+                        // Show image immediately
+                        await MainActor.run {
+                            profileImage = uiImage
+                        }
+                        
+                        // Save profile image to Firebase Storage (use profile path)
+                        let imageUrl = try await firebaseService.uploadImage(uiImage, isProfileImage: true)
+                        
+                        // Update user profile in Firestore with image URL
+                        guard var user = appState.currentUser else {
+                            await MainActor.run {
+                                validationError = "User not found"
+                                showValidationError = true
+                            }
+                            return
+                        }
+                        
+                        user.profileImageUrl = imageUrl
+                        appState.saveUser(user)
+                        
+                        // Also update in Firestore so it syncs
+                        try await firebaseService.updateUser(user)
+                        
+                        // Sync to ensure partner sees the update
+                        try await firebaseService.syncUserAndPartner()
+                        
+                        await MainActor.run {
+                            // Refresh user data to ensure profile image URL is loaded
+                            if let updatedUser = appState.currentUser {
+                                appState.saveUser(updatedUser)
+                            }
+                        }
+                    } catch {
+                        await MainActor.run {
+                            validationError = "Error uploading profile image: \(error.localizedDescription)"
+                            showValidationError = true
+                            // Revert image on error
+                            profileImage = nil
                         }
                     }
                 }
@@ -120,6 +155,11 @@ struct ProfileView: View {
             .onAppear {
                 if let user = appState.currentUser {
                     editedName = user.name
+                    
+                    // Load profile image if URL exists
+                    if let profileImageUrl = user.profileImageUrl {
+                        loadProfileImage(from: profileImageUrl)
+                    }
                 }
                 
                 // Sync user and partner data from Firestore
@@ -129,6 +169,10 @@ struct ProfileView: View {
                         await MainActor.run {
                             if let user = user {
                                 appState.saveUser(user)
+                                // Load profile image if URL exists
+                                if let profileImageUrl = user.profileImageUrl {
+                                    loadProfileImage(from: profileImageUrl)
+                                }
                             }
                             if let partner = partner {
                                 appState.savePartner(partner)
@@ -473,6 +517,25 @@ struct ProfileView: View {
                     }
                     .foregroundColor(AppTheme.accentPurple)
                 }
+            }
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func loadProfileImage(from urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let image = UIImage(data: data) {
+                    await MainActor.run {
+                        profileImage = image
+                    }
+                }
+            } catch {
+                print("Failed to load profile image: \(error.localizedDescription)")
             }
         }
     }

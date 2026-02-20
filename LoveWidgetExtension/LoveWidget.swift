@@ -249,7 +249,21 @@ struct LoveWidgetEntryView: View {
                 }
             }
         case .note:
-            notePlaceholder
+            // For notes, show partner's profile picture if available
+            if let imageData = entry.widgetData.imageData,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                    )
+            } else {
+                // Fallback to note icon if no profile picture
+                notePlaceholder
+            }
         case .status:
             statusEmoji
         }

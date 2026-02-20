@@ -804,10 +804,33 @@ class FirebaseService: ObservableObject {
             return
         }
         
-        // Compress and resize image data for widget (UserDefaults has size limits ~1MB)
-        // For drawings, use drawingData; for photos, use imageData
-        let sourceImageData = content.contentType == .drawing ? content.drawingData : content.imageData
+        // For notes, we want to show the partner's profile picture
+        // For drawings/photos, use the content's image data
+        var sourceImageData: Data? = nil
         
+        if content.contentType == .note {
+            // For notes, fetch partner's profile image asynchronously
+            Task {
+                do {
+                    var profileImageData: Data? = nil
+                    if let imageData = try await fetchPartnerProfileImage(for: content.senderId) {
+                        profileImageData = imageData
+                    }
+                    // Save widget data with profile image (or nil if not available)
+                    await saveWidgetDataWithImage(content: content, imageData: profileImageData)
+                } catch {
+                    logger.error("Failed to fetch partner profile image for widget: \(error.localizedDescription, privacy: .public)")
+                    // Save without image on error
+                    await saveWidgetDataWithImage(content: content, imageData: nil)
+                }
+            }
+            return // Will be saved asynchronously
+        } else {
+            // For photos/drawings, use the content's image data
+            sourceImageData = content.contentType == .drawing ? content.drawingData : content.imageData
+        }
+        
+        // Process image data synchronously for photos/drawings
         var compressedImageData: Data? = nil
         if let imageData = sourceImageData,
            let uiImage = UIImage(data: imageData) {
@@ -856,22 +879,77 @@ class FirebaseService: ObservableObject {
             }
         }
         
+        // Save widget data using shared helper
+        saveWidgetData(content: content, imageData: compressedImageData)
+    }
+    
+    // Helper function to save widget data with image (called async for notes)
+    @MainActor
+    private func saveWidgetDataWithImage(content: SharedContent, imageData: Data?) async {
+        // Compress partner profile image for widget
+        var compressedImageData: Data? = nil
+        if let imageData = imageData,
+           let uiImage = UIImage(data: imageData) {
+            // Resize and compress profile image (smaller for profile pictures)
+            let maxDimension: CGFloat = 200
+            var resizedImage = uiImage
+            
+            if uiImage.size.width > maxDimension || uiImage.size.height > maxDimension {
+                let scale = min(maxDimension / uiImage.size.width, maxDimension / uiImage.size.height)
+                let newSize = CGSize(width: uiImage.size.width * scale, height: uiImage.size.height * scale)
+                
+                UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+                uiImage.draw(in: CGRect(origin: .zero, size: newSize))
+                if let resized = UIGraphicsGetImageFromCurrentImageContext() {
+                    resizedImage = resized
+                }
+                UIGraphicsEndImageContext()
+            }
+            
+            compressedImageData = resizedImage.jpegData(compressionQuality: 0.6)
+        }
+        
+        // Save widget data
+        saveWidgetData(content: content, imageData: compressedImageData)
+    }
+    
+    // Fetch partner's profile image from Firestore
+    private func fetchPartnerProfileImage(for senderId: String) async throws -> Data? {
+        // Get partner's user document
+        let partnerDoc = try await db.collection("users").document(senderId).getDocument()
+        guard let partnerData = partnerDoc.data(),
+              let profileImageUrl = partnerData["profileImageUrl"] as? String,
+              let url = URL(string: profileImageUrl) else {
+            return nil
+        }
+        
+        // Download the image
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return data
+    }
+    
+    // Save widget data to UserDefaults (shared helper)
+    private func saveWidgetData(content: SharedContent, imageData: Data?) {
+        guard let defaults = sharedDefaults else {
+            logger.error("App Group not configured - widget data cannot be saved!")
+            return
+        }
+        
         let widgetData = WidgetData(
             contentType: content.contentType,
-            imageData: compressedImageData,
+            imageData: imageData,
             noteText: content.noteText,
             statusEmoji: content.statusEmoji,
             statusText: content.statusText,
-            caption: content.caption,  // Include caption for photos
+            caption: content.caption,
             senderName: content.senderName,
             timestamp: content.timestamp
         )
         
         if let data = try? JSONEncoder().encode(widgetData) {
             let dataSizeMB = Double(data.count) / 1024.0 / 1024.0
-            let imageSizeKB = compressedImageData != nil ? Double(compressedImageData!.count) / 1024.0 : 0
+            let imageSizeKB = imageData != nil ? Double(imageData!.count) / 1024.0 : 0
             
-            // Check if data is too large for UserDefaults
             if data.count > 1_000_000 {
                 logger.error("⚠️ Widget data too large: \(String(format: "%.2f", dataSizeMB))MB - UserDefaults may reject this!")
             }
@@ -880,12 +958,11 @@ class FirebaseService: ObservableObject {
             let syncSuccess = defaults.synchronize()
             
             let textContent = content.caption ?? content.statusText ?? content.noteText ?? "nil"
-            logger.info("Widget data saved - contentType: \(content.contentType.rawValue, privacy: .public), hasImageData: \(compressedImageData != nil, privacy: .public), imageSize: \(String(format: "%.1f", imageSizeKB))KB, totalSize: \(String(format: "%.2f", dataSizeMB))MB, syncSuccess: \(syncSuccess), senderName: \(content.senderName, privacy: .public), text: \(textContent, privacy: .public)")
+            logger.info("Widget data saved - contentType: \(content.contentType.rawValue, privacy: .public), hasImageData: \(imageData != nil, privacy: .public), imageSize: \(String(format: "%.1f", imageSizeKB))KB, totalSize: \(String(format: "%.2f", dataSizeMB))MB, syncSuccess: \(syncSuccess), senderName: \(content.senderName, privacy: .public), text: \(textContent, privacy: .public)")
         } else {
             logger.error("Failed to encode widget data")
         }
         
-        // Reload widget timeline immediately
         WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
         logger.info("Widget timeline reloaded for kind: LoveWidget")
     }
@@ -902,20 +979,22 @@ class FirebaseService: ObservableObject {
     
     // MARK: - Image Handling
     
-    func uploadImage(_ image: UIImage) async throws -> String {
+    func uploadImage(_ image: UIImage, isProfileImage: Bool = false) async throws -> String {
         guard let imageData = image.jpegData(compressionQuality: 0.7) else {
             throw NSError(domain: "FirebaseService", code: -4, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])
         }
         
         let imageId = UUID().uuidString
-        let ref = storage.reference().child("images/\(imageId).jpg")
+        // Use profiles/ path for profile images, images/ for content images
+        let path = isProfileImage ? "profiles/\(imageId).jpg" : "images/\(imageId).jpg"
+        let ref = storage.reference().child(path)
         
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         _ = try await ref.putDataAsync(imageData, metadata: metadata)
         let url = try await ref.downloadURL()
         
-        logger.info("Image uploaded to Storage: \(url.absoluteString, privacy: .public)")
+        logger.info("Image uploaded to Storage: \(url.absoluteString, privacy: .public), isProfileImage: \(isProfileImage, privacy: .public)")
         return url.absoluteString
     }
     
