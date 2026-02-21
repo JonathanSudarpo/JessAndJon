@@ -1,9 +1,15 @@
 import SwiftUI
 import FirebaseCore
+import FirebaseMessaging
+import FirebaseAuth
+import FirebaseFirestore
+import UserNotifications
+import WidgetKit
 import OSLog
 
 @main
 struct JessAndJonApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
     @StateObject private var firebaseService = FirebaseService.shared
     @StateObject private var authService = AuthService.shared
@@ -21,9 +27,37 @@ struct JessAndJonApp: App {
            projectId != "your-project-id" && !projectId.isEmpty {
             logger.info("Firebase configured with project: \(projectId, privacy: .public)")
             FirebaseApp.configure()
+            
+            // Set up Firebase Cloud Messaging
+            setupFirebaseMessaging()
         } else {
             // Firebase not configured - app will use local storage only
             logger.warning("Firebase not configured - using local storage only")
+        }
+    }
+    
+    // MARK: - Firebase Cloud Messaging Setup
+    private func setupFirebaseMessaging() {
+        // Set FCM messaging delegate
+        Messaging.messaging().delegate = MessagingDelegateHandler.shared
+        
+        // Request notification permissions
+        UNUserNotificationCenter.current().delegate = NotificationDelegateHandler.shared
+        
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error = error {
+                logger.error("Notification permission error: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            
+            if granted {
+                logger.info("Notification permission granted")
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            } else {
+                logger.warning("Notification permission denied")
+            }
         }
     }
     
@@ -46,6 +80,7 @@ struct JessAndJonApp: App {
             .environmentObject(appState)
             .environmentObject(firebaseService)
             .environmentObject(authService)
+            .preferredColorScheme(.light) // Force light mode to match simulator
             .task {
                 // Run this immediately when the view appears (before rendering)
                 // Always set validated to true, even if validation fails or hangs
@@ -228,5 +263,109 @@ struct JessAndJonApp: App {
             }
         }
         .id("\(authService.isAuthenticated)-\(appState.isOnboarded)") // Force refresh on state change
+    }
+}
+
+// MARK: - FCM Messaging Delegate
+class MessagingDelegateHandler: NSObject, MessagingDelegate {
+    static let shared = MessagingDelegateHandler()
+    private let logger = Logger(subsystem: "com.jessandjon.app", category: "FCM")
+    
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        logger.info("FCM Token received: \(fcmToken?.prefix(20) ?? "nil")...")
+        
+        // Save FCM token to Firestore for this user
+        guard let token = fcmToken,
+              let userId = Auth.auth().currentUser?.uid else {
+            logger.warning("Cannot save FCM token - no token or user")
+            return
+        }
+        
+        Task {
+            do {
+                let db = Firestore.firestore()
+                try await db.collection("users").document(userId).updateData([
+                    "fcmToken": token,
+                    "fcmTokenUpdatedAt": Timestamp(date: Date())
+                ])
+                logger.info("✅ FCM token saved to Firestore for user: \(userId, privacy: .public)")
+            } catch {
+                logger.error("❌ Failed to save FCM token: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+}
+
+// MARK: - Notification Delegate
+class NotificationDelegateHandler: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegateHandler()
+    private let logger = Logger(subsystem: "com.jessandjon.app", category: "Notifications")
+    
+    // Handle notification when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        logger.info("Notification received in foreground: \(notification.request.content.title, privacy: .public)")
+        
+        // Show notification even when app is open
+        completionHandler([.banner, .sound, .badge])
+        
+        // Update widget immediately
+        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+        logger.info("Widget timeline reloaded from foreground notification")
+    }
+    
+    // Handle notification tap
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+        logger.info("Notification tapped: \(response.notification.request.content.title, privacy: .public)")
+        
+        // Update widget when notification is tapped
+        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+        logger.info("Widget timeline reloaded from notification tap")
+        
+        // Also refresh partner content to ensure widget has latest data
+        Task {
+            FirebaseService.shared.refreshPartnerContent()
+        }
+        
+        completionHandler()
+    }
+}
+
+// MARK: - App Delegate for Push Notifications
+class AppDelegate: NSObject, UIApplicationDelegate {
+    private let logger = Logger(subsystem: "com.jessandjon.app", category: "AppDelegate")
+    
+    // Handle APNs token registration
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        logger.info("APNs token registered")
+        Messaging.messaging().apnsToken = deviceToken
+    }
+    
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        logger.error("Failed to register for remote notifications: \(error.localizedDescription, privacy: .public)")
+    }
+    
+    // Handle background notification (when app is closed)
+    func application(_ application: UIApplication, 
+                    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        logger.info("Background notification received")
+        
+        // Check if this is a widget update notification
+        if userInfo["widgetUpdate"] as? String == "true" {
+            logger.info("Widget update notification received in background")
+            
+            // Refresh partner content and update widget
+            Task {
+                await FirebaseService.shared.refreshPartnerContent()
+                WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+                completionHandler(.newData)
+            }
+        } else {
+            completionHandler(.noData)
+        }
     }
 }

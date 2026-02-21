@@ -50,6 +50,10 @@ struct StatusView: View {
             }
             .padding(.horizontal, 20)
         }
+        .onTapGesture {
+            // Dismiss keyboard when tapping outside
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .overlay {
             if showSuccess {
                 successOverlay
@@ -208,26 +212,28 @@ struct StatusView: View {
                     Button(action: {
                         showEmojiPicker = true
                     }) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.softGradient)
-                                .frame(width: 50, height: 50)
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.softGradient)
+                            .frame(width: 50, height: 50)
                             
                             Text(customEmoji)
-                                .font(.system(size: 24))
+                            .font(.system(size: 24))
                         }
                     }
                     .buttonStyle(.plain)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        TextField("What's on your mind?", text: $customStatus)
-                            .font(.appBody)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white)
-                                    .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
-                            )
+                    TextField("What's on your mind?", text: $customStatus)
+                        .font(.appBody)
+                            .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
+                                .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
+                        )
+                            .submitLabel(.done)
                             .onChange(of: customStatus) { _, newValue in
                                 // Limit to max length
                                 if newValue.count > Validation.maxStatusTextLength {

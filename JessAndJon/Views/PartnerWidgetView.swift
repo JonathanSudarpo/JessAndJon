@@ -34,7 +34,7 @@ struct PartnerWidgetView: View {
                     .padding(.top, 20)
                 }
             }
-            .navigationTitle("From Your Love")
+            .navigationTitle("Recent Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -57,11 +57,11 @@ struct PartnerWidgetView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Latest from")
+                    Text("Latest")
                         .font(.appCaption)
                         .foregroundColor(AppTheme.textSecondary)
                     
-                    Text(content.senderName)
+                    Text("from \(content.senderName)")
                         .font(.appHeadline)
                         .foregroundColor(AppTheme.textPrimary)
                 }
@@ -133,57 +133,28 @@ struct PartnerWidgetView: View {
     
     private func notePreview(content: SharedContent, isLarge: Bool) -> some View {
         HStack(spacing: 16) {
-            // Partner's profile picture
-            if let profileImage = partnerProfileImage {
-                Image(uiImage: profileImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(AppTheme.mainGradient, lineWidth: 2)
-                    )
-            } else if let partner = appState.partner {
-                // Fallback to initial if no profile image
-                Circle()
-                    .fill(AppTheme.mainGradient)
-                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
-                    .overlay(
-                        Text(partner.name.prefix(1).uppercased())
-                            .font(.system(size: isLarge ? 32 : 20, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    )
-            } else {
-                Circle()
-                    .fill(AppTheme.mainGradient)
-                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: isLarge ? 32 : 20))
-                            .foregroundColor(.white)
-                    )
-            }
+            // Profile picture (partner or current user)
+            profileImageForContent(content: content, isLarge: isLarge)
             
             VStack(alignment: .leading, spacing: 8) {
-                if isLarge {
-                    Image(systemName: "quote.opening")
+            if isLarge {
+                Image(systemName: "quote.opening")
                         .font(.system(size: 20))
-                        .foregroundStyle(AppTheme.mainGradient)
-                }
-                
-                Text(content.noteText ?? "")
+                    .foregroundStyle(AppTheme.mainGradient)
+            }
+            
+            Text(content.noteText ?? "")
                     .font(isLarge ? .system(size: 18, weight: .medium, design: .serif) : .appBody)
-                    .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(AppTheme.textPrimary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(isLarge ? nil : 3)
-                
-                if isLarge {
+                .lineLimit(isLarge ? nil : 3)
+            
+            if isLarge {
                     HStack {
                         Spacer()
-                        Image(systemName: "quote.closing")
+                Image(systemName: "quote.closing")
                             .font(.system(size: 20))
-                            .foregroundStyle(AppTheme.mainGradient)
+                    .foregroundStyle(AppTheme.mainGradient)
                     }
                 }
             }
@@ -321,6 +292,10 @@ struct PartnerWidgetView: View {
                         .font(.appCaption)
                         .foregroundColor(AppTheme.accentPurple)
                     
+                    Text("• \(content.senderName)")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.textSecondary)
+                    
                     Spacer()
                     
                     Text(content.timestamp.timeAgo)
@@ -345,6 +320,7 @@ struct PartnerWidgetView: View {
     // MARK: - Helpers
     
     private func loadPartnerProfileImage() {
+        // Load partner's profile image if available
         guard let partner = appState.partner,
               let profileImageUrl = partner.profileImageUrl,
               let url = URL(string: profileImageUrl) else {
@@ -362,6 +338,76 @@ struct PartnerWidgetView: View {
             } catch {
                 print("Failed to load partner profile image: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    // Get profile image for content (handles both partner and current user)
+    @ViewBuilder
+    private func profileImageForContent(content: SharedContent, isLarge: Bool) -> some View {
+        // Check if it's the current user
+        if let currentUser = appState.currentUser, currentUser.id == content.senderId {
+            if let profileImageUrl = currentUser.profileImageUrl, let url = URL(string: profileImageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    Circle()
+                        .fill(AppTheme.mainGradient)
+                        .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                        .overlay(
+                            Text(currentUser.name.prefix(1).uppercased())
+                                .font(.system(size: isLarge ? 32 : 20, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        )
+                }
+                .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(AppTheme.mainGradient, lineWidth: 2)
+                )
+            } else {
+                Circle()
+                    .fill(AppTheme.mainGradient)
+                    .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                    .overlay(
+                        Text(currentUser.name.prefix(1).uppercased())
+                            .font(.system(size: isLarge ? 32 : 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    )
+            }
+        } else if let profileImage = partnerProfileImage, let partner = appState.partner, partner.id == content.senderId {
+            // Partner's profile image (already loaded)
+            Image(uiImage: profileImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(AppTheme.mainGradient, lineWidth: 2)
+                )
+        } else if let partner = appState.partner, partner.id == content.senderId {
+            // Partner's initial (fallback)
+            Circle()
+                .fill(AppTheme.mainGradient)
+                .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                .overlay(
+                    Text(partner.name.prefix(1).uppercased())
+                        .font(.system(size: isLarge ? 32 : 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                )
+        } else {
+            // Generic fallback
+            Circle()
+                .fill(AppTheme.mainGradient)
+                .frame(width: isLarge ? 80 : 50, height: isLarge ? 80 : 50)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.system(size: isLarge ? 32 : 20))
+                        .foregroundColor(.white)
+                )
         }
     }
     
@@ -390,7 +436,8 @@ struct PartnerWidgetView: View {
     private func loadContent() {
         Task {
             do {
-                let fetched = try await firebaseService.fetchPartnerContent()
+                // Fetch content from both users (for "recents" view)
+                let fetched = try await firebaseService.fetchLatestContent(limit: 50)
                 await MainActor.run {
                     content = fetched
                     isLoading = false

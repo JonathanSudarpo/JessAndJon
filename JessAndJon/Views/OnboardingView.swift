@@ -67,7 +67,7 @@ struct OnboardingView: View {
                         if hasName {
                             connectPage
                         } else {
-                            namePage
+                    namePage
                         }
                     } else {
                         loginPage
@@ -123,6 +123,10 @@ struct OnboardingView: View {
         .onChange(of: authService.currentUser?.displayName) { _, _ in
             // React to changes in Firebase Auth displayName
             checkAndUpdatePage()
+        }
+        .onTapGesture {
+            // Dismiss keyboard when tapping outside
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
     }
     
@@ -292,6 +296,7 @@ struct OnboardingView: View {
                 TextField("Enter your name", text: $userName)
                     .font(.appHeadline)
                     .multilineTextAlignment(.center)
+                    .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
@@ -299,6 +304,7 @@ struct OnboardingView: View {
                             .shadow(color: AppTheme.accentPink.opacity(0.3), radius: 15, x: 0, y: 5)
                     )
                     .padding(.horizontal, 40)
+                    .submitLabel(.done)
             }
             .onAppear {
                 // Pre-populate name from Firebase Auth displayName if available and userName is empty
@@ -312,20 +318,20 @@ struct OnboardingView: View {
             }
             
             Spacer()
-            
-            Button(action: {
-                Task {
-                    await createUserAndContinue()
+                
+                Button(action: {
+                    Task {
+                        await createUserAndContinue()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Text("Continue")
+                        Image(systemName: "arrow.right")
+                    }
                 }
-            }) {
-                HStack(spacing: 8) {
-                    Text("Continue")
-                    Image(systemName: "arrow.right")
-                }
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(userName.trimmingCharacters(in: .whitespaces).isEmpty)
-            .opacity(userName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.6 : 1)
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(userName.trimmingCharacters(in: .whitespaces).isEmpty)
+                .opacity(userName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.6 : 1)
             
             Spacer()
                 .frame(height: 40)
@@ -410,6 +416,7 @@ struct OnboardingView: View {
                         .font(.system(size: 28, weight: .bold, design: .monospaced))
                         .multilineTextAlignment(.center)
                         .textCase(.uppercase)
+                        .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 16)
@@ -417,6 +424,7 @@ struct OnboardingView: View {
                                 .shadow(color: AppTheme.accentPink.opacity(0.3), radius: 15, x: 0, y: 5)
                         )
                         .padding(.horizontal, 40)
+                        .submitLabel(.done)
                     
                     Button(action: {
                         withAnimation(.spring()) {
@@ -611,19 +619,34 @@ struct OnboardingView: View {
         defer { isConnecting = false }
         
         do {
-            if let partner = try await firebaseService.connectWithPartner(code: partnerCode.uppercased(), currentUser: currentUser) {
-                // Save partner to app state (which persists it)
-                appState.savePartner(partner)
+            let codeToConnect = partnerCode.uppercased().trimmingCharacters(in: .whitespaces)
+            
+            if let partner = try await firebaseService.connectWithPartner(code: codeToConnect, currentUser: currentUser) {
+                // Sync user and partner from Firestore to get updated state
+                let (updatedUser, syncedPartner) = try await firebaseService.syncUserAndPartner()
                 
-                // Also update current user with partner ID
-                var updatedUser = currentUser
-                updatedUser.partnerId = partner.id
-                appState.saveUser(updatedUser)
+                // Update app state with synced data
+                await MainActor.run {
+                    // Save partner to app state (which persists it)
+                    if let syncedPartner = syncedPartner {
+                        appState.savePartner(syncedPartner)
+                    } else {
+                        appState.savePartner(partner) // Fallback to the partner we just connected
+                    }
                 
-                // Also update in Firestore
-                try await firebaseService.updateUser(updatedUser)
-                
-                // Don't generate mock data - wait for real partner to send content
+                    // Update current user with partner ID
+                    if let updatedUser = updatedUser {
+                        appState.saveUser(updatedUser)
+                    } else {
+                        // Fallback: manually update
+                        var userCopy = currentUser
+                        userCopy.partnerId = partner.id
+                        appState.saveUser(userCopy)
+                    }
+                    
+                    // Refresh partner content to ensure widget updates
+                    firebaseService.refreshPartnerContent()
+                }
                 
                 // Complete onboarding
                 withAnimation(.spring()) {
@@ -645,7 +668,7 @@ struct OnboardingView: View {
                     errorMessage = error.localizedDescription
                 }
             } else {
-                errorMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
             }
             showError = true
         }

@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
@@ -6,6 +7,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showPartnerWidget = false
     @State private var showProfile = false
+    @State private var partnerProfileImage: UIImage? = nil
     
     // Timer for periodic refresh (every 10 seconds)
     let refreshTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
@@ -123,7 +125,7 @@ struct ContentView: View {
                         .foregroundStyle(AppTheme.mainGradient)
                     
                     HStack(spacing: 8) {
-                        if let latest = firebaseService.partnerContent {
+                        if let latest = firebaseService.latestContent {
                             Text("\(latest.senderName) • \(latest.timestamp.timeAgo)")
                                 .font(.appCaption)
                                 .foregroundColor(AppTheme.textSecondary)
@@ -173,7 +175,7 @@ struct ContentView: View {
                             .frame(width: 50, height: 50)
                             .shadow(color: AppTheme.accentPink.opacity(0.3), radius: 8, x: 0, y: 4)
                         
-                        if let latest = firebaseService.partnerContent {
+                        if let latest = firebaseService.latestContent {
                             // Show status emoji if available, otherwise show heart symbol
                             if let emoji = latest.statusEmoji {
                                 Text(emoji)
@@ -195,10 +197,18 @@ struct ContentView: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             
-            // Mini widget preview
-            if let latest = firebaseService.partnerContent {
+            // Mini widget preview (shows latest from either user)
+            if let latest = firebaseService.latestContent {
                 miniWidgetPreview(content: latest)
                     .onTapGesture { showPartnerWidget = true }
+                    .onChange(of: latest.senderId) { _, _ in
+                        // Fetch profile image when content changes
+                        loadPartnerProfileImage(for: latest.senderId)
+                    }
+                    .onAppear {
+                        // Load profile image when preview appears
+                        loadPartnerProfileImage(for: latest.senderId)
+                    }
             }
         }
     }
@@ -226,6 +236,18 @@ struct ContentView: View {
                             )
                     }
                 case .note:
+                    // Show partner's profile picture for notes (matching widget behavior)
+                    if let profileImage = partnerProfileImage {
+                        Image(uiImage: profileImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                    } else {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(AppTheme.lavender.opacity(0.5))
                         .frame(width: 44, height: 44)
@@ -233,6 +255,7 @@ struct ContentView: View {
                             Image(systemName: "note.text")
                                 .foregroundColor(AppTheme.accentPurple)
                         )
+                    }
                 case .drawing:
                     if let drawingData = content.drawingData, let uiImage = UIImage(data: drawingData) {
                         Image(uiImage: uiImage)
@@ -252,8 +275,8 @@ struct ContentView: View {
                 case .status:
                     if let emoji = content.statusEmoji {
                         Text(emoji)
-                            .font(.system(size: 32))
-                            .frame(width: 44, height: 44)
+                        .font(.system(size: 32))
+                        .frame(width: 44, height: 44)
                     } else {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 20))
@@ -346,6 +369,53 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
+    }
+    
+    // MARK: - Helper Functions
+    private func loadPartnerProfileImage(for senderId: String) {
+        Task {
+            do {
+                // Check if it's the current user
+                if let currentUser = appState.currentUser, currentUser.id == senderId {
+                    if let profileImageUrl = currentUser.profileImageUrl, let url = URL(string: profileImageUrl) {
+                        let (data, _) = try await URLSession.shared.data(from: url)
+                        if let image = UIImage(data: data) {
+                            await MainActor.run {
+                                partnerProfileImage = image
+                            }
+                            return
+                        }
+                    }
+                }
+                
+                // Check if it's the partner
+                if let partner = appState.partner, partner.id == senderId, let profileImageUrl = partner.profileImageUrl, let url = URL(string: profileImageUrl) {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    if let image = UIImage(data: data) {
+                        await MainActor.run {
+                            partnerProfileImage = image
+                        }
+                        return
+                    }
+                }
+                
+                // Fallback: fetch from Firestore
+                let db = Firestore.firestore()
+                let userDoc = try await db.collection("users").document(senderId).getDocument()
+                if let userData = userDoc.data(),
+                   let profileImageUrl = userData["profileImageUrl"] as? String,
+                   let url = URL(string: profileImageUrl) {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    if let image = UIImage(data: data) {
+                        await MainActor.run {
+                            partnerProfileImage = image
+                        }
+                    }
+                }
+            } catch {
+                // Silently fail - will show placeholder
+            }
+        }
     }
 }
 

@@ -16,7 +16,10 @@ struct LoveWidgetProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<LoveWidgetEntry>) -> Void) {
         let currentDate = Date()
         let widgetData = loadWidgetData()
-        let entry = LoveWidgetEntry(date: currentDate, widgetData: widgetData)
+        // Use current date (or slightly in the past) to ensure entry is immediately valid
+        // This ensures the widget updates immediately when reloadTimelines() is called
+        let entryDate = currentDate
+        let entry = LoveWidgetEntry(date: entryDate, widgetData: widgetData)
         
         // Refresh every 15 minutes as a fallback
         // Primary updates happen via reloadTimelines() when new content arrives
@@ -118,6 +121,12 @@ struct LoveWidgetEntryView: View {
                 mediumWidget
             case .systemLarge:
                 largeWidget
+            case .accessoryRectangular:
+                lockScreenRectangular
+            case .accessoryCircular:
+                lockScreenCircular
+            case .accessoryInline:
+                lockScreenInline
             default:
                 smallWidget
             }
@@ -262,7 +271,7 @@ struct LoveWidgetEntryView: View {
                     )
             } else {
                 // Fallback to note icon if no profile picture
-                notePlaceholder
+            notePlaceholder
             }
         case .status:
             statusEmoji
@@ -301,6 +310,83 @@ struct LoveWidgetEntryView: View {
         }
     }
     
+    // MARK: - Lock Screen Widgets
+    private var lockScreenRectangular: some View {
+        HStack(spacing: 8) {
+            // Emoji or small icon
+            Group {
+                switch entry.widgetData.contentType {
+                case .photo, .drawing:
+                    Image(systemName: "photo.fill")
+                        .font(.system(size: 14))
+                case .note:
+                    Image(systemName: "note.text")
+                        .font(.system(size: 14))
+                case .status:
+                    Text(entry.widgetData.statusEmoji ?? "💕")
+                        .font(.system(size: 16))
+                }
+            }
+            .foregroundColor(.white)
+            
+            // Text content
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.widgetData.caption ?? entry.widgetData.statusText ?? entry.widgetData.noteText ?? "")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Text("From \(entry.widgetData.senderName)")
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+    
+    private var lockScreenCircular: some View {
+        VStack(spacing: 4) {
+            // Emoji or icon
+            Group {
+                switch entry.widgetData.contentType {
+                case .photo, .drawing:
+                    Image(systemName: "photo.fill")
+                        .font(.system(size: 20))
+                case .note:
+                    Image(systemName: "note.text")
+                        .font(.system(size: 20))
+                case .status:
+                    Text(entry.widgetData.statusEmoji ?? "💕")
+                        .font(.system(size: 24))
+                }
+            }
+            .foregroundColor(.white)
+            
+            // Sender initial
+            Text(entry.widgetData.senderName.prefix(1).uppercased())
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white.opacity(0.9))
+        }
+    }
+    
+    private var lockScreenInline: some View {
+        HStack(spacing: 4) {
+            // Emoji
+            Text(entry.widgetData.statusEmoji ?? "💕")
+                .font(.system(size: 14))
+            
+            // Text
+            Text(entry.widgetData.caption ?? entry.widgetData.statusText ?? entry.widgetData.noteText ?? "New update")
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+        }
+        .foregroundColor(.white)
+    }
+    
     // MARK: - Time Ago Helper
     private func timeAgo(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
@@ -330,7 +416,7 @@ struct LoveWidget: Widget {
         }
         .configurationDisplayName("Love Widget")
         .description("See what your partner is up to 💕")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }
 

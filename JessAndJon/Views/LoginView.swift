@@ -135,33 +135,39 @@ struct LoginView: View {
                     TextField("Your Name", text: $name)
                         .textContentType(.name)
                         .autocapitalization(.words)
+                        .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color.white)
                                 .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                         )
+                        .submitLabel(.next)
                 }
                 
                 TextField("Email", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.white)
                             .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                     )
+                    .submitLabel(.next)
                 
                 SecureField("Password", text: $password)
                     .textContentType(isSignUp ? .newPassword : .password)
+                    .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.white)
                             .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                     )
+                    .submitLabel(.done)
                 
                 Button(action: {
                     Task {
@@ -191,6 +197,10 @@ struct LoginView: View {
             }
             .padding(.horizontal, 40)
             .background(AppTheme.backgroundPrimary)
+            .onTapGesture {
+                // Dismiss keyboard when tapping outside
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .navigationTitle(isSignUp ? "Sign Up" : "Sign In")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

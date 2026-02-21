@@ -51,8 +51,12 @@ struct PhotoView: View {
             .padding(.bottom, 120) // Extra padding for tab bar
         }
         .scrollIndicators(.hidden)
+        .onTapGesture {
+            // Dismiss keyboard when tapping outside
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .sheet(isPresented: $showCamera) {
-            ImagePicker(image: $selectedImage, sourceType: .camera)
+            CustomCameraView(image: $selectedImage)
         }
         .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images)
         .onChange(of: selectedItem) { _, newItem in
@@ -157,12 +161,14 @@ struct PhotoView: View {
             
             TextField("Say something sweet...", text: $caption)
                 .font(.appBody)
+                .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.white)
                         .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                 )
+                .submitLabel(.done)
                 .onChange(of: caption) { _, newValue in
                     // Limit to max length
                     if newValue.count > Validation.maxCaptionLength {

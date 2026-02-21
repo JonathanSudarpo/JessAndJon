@@ -53,6 +53,10 @@ struct ProfileView: View {
                 .padding(.top, 20)
             }
             .background(AppTheme.backgroundPrimary)
+            .onTapGesture {
+                // Dismiss keyboard when tapping outside
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -418,6 +422,7 @@ struct ProfileView: View {
                         .textCase(.uppercase)
                         .autocapitalization(.allCharacters)
                         .autocorrectionDisabled()
+                        .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(
@@ -425,6 +430,7 @@ struct ProfileView: View {
                                 .fill(Color.white)
                                 .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 4, x: 0, y: 2)
                         )
+                        .submitLabel(.done)
                 }
                 .padding(.horizontal, 20)
                 
@@ -553,12 +559,14 @@ struct ProfileView: View {
                     TextField("Your name", text: $editedName)
                         .font(.appHeadline)
                         .multilineTextAlignment(.center)
+                        .foregroundColor(AppTheme.textPrimary) // Explicit text color for dark mode
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color.white)
                                 .shadow(color: AppTheme.accentPink.opacity(0.1), radius: 8, x: 0, y: 4)
                         )
+                        .submitLabel(.done)
                         .onChange(of: editedName) { _, newValue in
                             // Limit to max length
                             if newValue.count > Validation.maxNameLength {
@@ -693,27 +701,37 @@ struct ProfileView: View {
         defer { isConnecting = false }
         
         do {
-            if let partner = try await firebaseService.connectWithPartner(code: partnerCode.uppercased(), currentUser: currentUser) {
-                // Save partner to app state (which persists it)
-                appState.savePartner(partner)
+            let codeToConnect = partnerCode.uppercased().trimmingCharacters(in: .whitespaces)
+            
+            if let partner = try await firebaseService.connectWithPartner(code: codeToConnect, currentUser: currentUser) {
+                // Sync user and partner from Firestore to get updated state
+                let (updatedUser, syncedPartner) = try await firebaseService.syncUserAndPartner()
                 
-                // Sync user from Firestore to get updated state (with cleared anniversary date)
-                let (updatedUser, _) = try await firebaseService.syncUserAndPartner()
-                
-                // Update current user with partner ID and cleared anniversary date
-                if let updatedUser = updatedUser {
-                    appState.saveUser(updatedUser)
-                } else {
-                    // Fallback: manually update
-                    var userCopy = currentUser
-                    userCopy.partnerId = partner.id
-                    userCopy.anniversaryDate = nil
-                    appState.saveUser(userCopy)
-                }
-                
-                // Clear the partner code field
+                // Update app state with synced data
                 await MainActor.run {
+                    // Save partner to app state (which persists it)
+                    if let syncedPartner = syncedPartner {
+                        appState.savePartner(syncedPartner)
+                    } else {
+                        appState.savePartner(partner) // Fallback to the partner we just connected
+                    }
+                    
+                    // Update current user with partner ID and cleared anniversary date
+                    if let updatedUser = updatedUser {
+                        appState.saveUser(updatedUser)
+                    } else {
+                        // Fallback: manually update
+                        var userCopy = currentUser
+                        userCopy.partnerId = partner.id
+                        userCopy.anniversaryDate = nil
+                        appState.saveUser(userCopy)
+                    }
+                    
+                    // Clear the partner code field
                     partnerCode = ""
+                    
+                    // Refresh partner content to ensure widget updates
+                    firebaseService.refreshPartnerContent()
                 }
             } else {
                 await MainActor.run {

@@ -12,7 +12,8 @@ class FirebaseService: ObservableObject {
     static let shared = FirebaseService()
     
     @Published var isConnected = false
-    @Published var partnerContent: SharedContent?
+    @Published var partnerContent: SharedContent? // Latest from partner (for widget)
+    @Published var latestContent: SharedContent? // Latest from either user (for header banner)
     @Published var streakData: StreakData = StreakData()
     
     private let db = Firestore.firestore()
@@ -24,6 +25,10 @@ class FirebaseService: ObservableObject {
     private let sharedDefaults = UserDefaults(suiteName: "group.com.jessandjon.app")
     private let contentKey = "sharedContent"
     private let partnerContentKey = "partnerContent"
+    
+    // Debounce widget timeline reloads to prevent throttling
+    private var lastWidgetReloadTime: Date = Date.distantPast
+    private let widgetReloadDebounceInterval: TimeInterval = 1.0 // 1 second minimum between reloads
     
     init() {
         // Fallback to standard UserDefaults if App Group is not available
@@ -68,6 +73,36 @@ class FirebaseService: ObservableObject {
         // Load profile image URL if present
         if let profileImageUrl = userData["profileImageUrl"] as? String {
             user.profileImageUrl = profileImageUrl
+        }
+        
+        // Check if streak was cleared (partner disconnected)
+        // This allows the partner's streak to be cleared when they sync after disconnect
+        if let streakClearedTimestamp = userData["streakClearedAt"] as? Timestamp {
+            let streakClearedDate = streakClearedTimestamp.dateValue()
+            let currentStreak = getStreak()
+            
+            // If streak was cleared after the last streak date, clear the streak
+            if let lastStreakDate = currentStreak.lastStreakDate {
+                if streakClearedDate >= lastStreakDate {
+                    // Streak was cleared (on or after last streak date), reset it
+                    let defaults = sharedDefaults ?? UserDefaults.standard
+                    defaults.removeObject(forKey: "streakData")
+                    defaults.synchronize()
+                    Task { @MainActor in
+                        streakData = StreakData()
+                    }
+                    logger.info("Streak cleared due to partner disconnect (streakClearedAt: \(streakClearedDate) >= lastStreakDate: \(lastStreakDate))")
+                }
+            } else {
+                // No streak yet, but clear flag is set - clear it anyway to be safe
+                let defaults = sharedDefaults ?? UserDefaults.standard
+                defaults.removeObject(forKey: "streakData")
+                defaults.synchronize()
+                Task { @MainActor in
+                    streakData = StreakData()
+                }
+                logger.info("Streak cleared due to partner disconnect (no existing streak)")
+            }
         }
         
         // If user has a partner, fetch partner data
@@ -372,14 +407,18 @@ class FirebaseService: ObservableObject {
         }
         
         // Step 3: Remove partner ID and anniversary date from both users
+        // Also set streakClearedAt timestamp so partner's app can clear their streak
+        let disconnectTimestamp = Timestamp(date: Date())
         try await db.collection("users").document(currentUser.id).updateData([
             "partnerId": NSNull(),
-            "anniversaryDate": NSNull()
+            "anniversaryDate": NSNull(),
+            "streakClearedAt": disconnectTimestamp
         ])
         
         try await db.collection("users").document(partnerId).updateData([
             "partnerId": NSNull(),
-            "anniversaryDate": NSNull()
+            "anniversaryDate": NSNull(),
+            "streakClearedAt": disconnectTimestamp
         ])
         
         // Step 4: Clear widget data
@@ -493,8 +532,13 @@ class FirebaseService: ObservableObject {
         try await db.collection("content").document(contentToSave.id).setData(contentData)
         logger.info("Content saved to Firestore: \(contentToSave.id, privacy: .public)")
         
-        // Update streak when content is sent
+        // Update streak when content is sent (for all content types: photo, note, status, drawing)
         updateStreak()
+        
+        // Update latest content for header banner (shows latest from either user)
+        Task {
+            await refreshLatestContent()
+        }
         
         // Note: Do NOT update partnerContent or widget here - this is content the USER sent
         // The widget should only show content FROM the partner, not from the user
@@ -543,6 +587,10 @@ class FirebaseService: ObservableObject {
                         Task { @MainActor in
                             self.partnerContent = nil
                         }
+                        // Also refresh latest content when partner content changes
+                        Task {
+                            await self.refreshLatestContent()
+                        }
                         return
                     }
                     
@@ -553,9 +601,11 @@ class FirebaseService: ObservableObject {
                             await MainActor.run {
                                 self.partnerContent = content
                                 self.logger.info("Real-time update: New content from \(content.senderName, privacy: .public)")
-                                // Update widget
+                                // Update widget (only partner's content)
                                 self.saveToWidget(content)
                             }
+                            // Also refresh latest content (from either user) for header banner
+                            await self.refreshLatestContent()
                         } catch {
                             self.logger.error("Error parsing content: \(error.localizedDescription, privacy: .public)")
                         }
@@ -581,19 +631,20 @@ class FirebaseService: ObservableObject {
                     logger.info("No partner connected")
                     await MainActor.run {
                         partnerContent = nil
+                        latestContent = nil
                     }
                     return
                 }
                 
-                // Query latest content from partner
-                let query = db.collection("content")
+                // Query latest content from partner (for widget)
+                let partnerQuery = db.collection("content")
                     .whereField("senderId", isEqualTo: partnerId)
                     .order(by: "timestamp", descending: true)
                     .limit(to: 1)
                 
-                let snapshot = try await query.getDocuments()
+                let partnerSnapshot = try await partnerQuery.getDocuments()
                 
-                if let doc = snapshot.documents.first {
+                if let doc = partnerSnapshot.documents.first {
                     let content = try await documentToSharedContent(doc)
                     await MainActor.run {
                         partnerContent = content
@@ -606,8 +657,28 @@ class FirebaseService: ObservableObject {
                         partnerContent = nil
                     }
                 }
+                
+                // Query latest content from either user (for header banner)
+                let latestQuery = db.collection("content")
+                    .whereField("senderId", in: [currentUser.uid, partnerId])
+                    .order(by: "timestamp", descending: true)
+                    .limit(to: 1)
+                
+                let latestSnapshot = try await latestQuery.getDocuments()
+                
+                if let doc = latestSnapshot.documents.first {
+                    let content = try await documentToSharedContent(doc)
+                    await MainActor.run {
+                        latestContent = content
+                        logger.info("Refreshed latest content: \(content.senderName, privacy: .public)")
+                    }
+                } else {
+                    await MainActor.run {
+                        latestContent = nil
+                    }
+                }
             } catch {
-                logger.error("Error refreshing partner content: \(error.localizedDescription, privacy: .public)")
+                logger.error("Error refreshing content: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -788,6 +859,79 @@ class FirebaseService: ObservableObject {
         return partnerContent
     }
     
+    // Fetch latest content from either user (for header banner and recents view)
+    func fetchLatestContent(limit: Int = 50) async throws -> [SharedContent] {
+        guard let currentUser = Auth.auth().currentUser else {
+            return []
+        }
+        
+        // Get partner ID from current user
+        let userDoc = try await db.collection("users").document(currentUser.uid).getDocument()
+        guard let partnerId = userDoc.data()?["partnerId"] as? String else {
+            return []
+        }
+        
+        // Query content from both users
+        let query = db.collection("content")
+            .whereField("senderId", in: [currentUser.uid, partnerId])
+            .order(by: "timestamp", descending: true)
+            .limit(to: limit)
+        
+        let snapshot = try await query.getDocuments()
+        var content: [SharedContent] = []
+        
+        for doc in snapshot.documents {
+            if let sharedContent = try? await documentToSharedContent(doc) {
+                content.append(sharedContent)
+            }
+        }
+        
+        return content
+    }
+    
+    // Refresh latest content from either user (for header banner)
+    func refreshLatestContent() async {
+        do {
+            guard let currentUser = Auth.auth().currentUser else {
+                await MainActor.run {
+                    latestContent = nil
+                }
+                return
+            }
+            
+            // Get partner ID from current user
+            let userDoc = try await db.collection("users").document(currentUser.uid).getDocument()
+            guard let partnerId = userDoc.data()?["partnerId"] as? String else {
+                await MainActor.run {
+                    latestContent = nil
+                }
+                return
+            }
+            
+            // Query latest content from either user (for header banner)
+            let query = db.collection("content")
+                .whereField("senderId", in: [currentUser.uid, partnerId])
+                .order(by: "timestamp", descending: true)
+                .limit(to: 1)
+            
+            let snapshot = try await query.getDocuments()
+            
+            if let doc = snapshot.documents.first {
+                let content = try await documentToSharedContent(doc)
+                await MainActor.run {
+                    latestContent = content
+                    logger.info("Refreshed latest content for header: \(content.senderName, privacy: .public)")
+                }
+            } else {
+                await MainActor.run {
+                    latestContent = nil
+                }
+            }
+        } catch {
+            logger.error("Error refreshing latest content: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+    
     // MARK: - Memories/Collage
     
     func fetchMemories(for monthYear: String) async throws -> [SharedContent] {
@@ -922,13 +1066,18 @@ class FirebaseService: ObservableObject {
             Task {
                 do {
                     var profileImageData: Data? = nil
+                    logger.info("Fetching partner profile image for note widget - senderId: \(content.senderId, privacy: .public)")
                     if let imageData = try await fetchPartnerProfileImage(for: content.senderId) {
                         profileImageData = imageData
+                        let sizeKB = Double(imageData.count) / 1024.0
+                        logger.info("✅ Successfully fetched partner profile image: \(String(format: "%.1f", sizeKB))KB")
+                    } else {
+                        logger.warning("⚠️ Partner profile image not available (no URL or missing data)")
                     }
                     // Save widget data with profile image (or nil if not available)
                     await saveWidgetDataWithImage(content: content, imageData: profileImageData)
                 } catch {
-                    logger.error("Failed to fetch partner profile image for widget: \(error.localizedDescription, privacy: .public)")
+                    logger.error("❌ Failed to fetch partner profile image for widget: \(error.localizedDescription, privacy: .public)")
                     // Save without image on error
                     await saveWidgetDataWithImage(content: content, imageData: nil)
                 }
@@ -1026,15 +1175,42 @@ class FirebaseService: ObservableObject {
     private func fetchPartnerProfileImage(for senderId: String) async throws -> Data? {
         // Get partner's user document
         let partnerDoc = try await db.collection("users").document(senderId).getDocument()
-        guard let partnerData = partnerDoc.data(),
-              let profileImageUrl = partnerData["profileImageUrl"] as? String,
-              let url = URL(string: profileImageUrl) else {
+        guard let partnerData = partnerDoc.data() else {
+            logger.warning("Partner document not found for senderId: \(senderId, privacy: .public)")
             return nil
         }
         
-        // Download the image
-        let (data, _) = try await URLSession.shared.data(from: url)
-        return data
+        guard let profileImageUrl = partnerData["profileImageUrl"] as? String else {
+            logger.warning("Partner has no profileImageUrl for senderId: \(senderId, privacy: .public)")
+            return nil
+        }
+        
+        guard let url = URL(string: profileImageUrl) else {
+            logger.error("Invalid profile image URL: \(profileImageUrl, privacy: .public)")
+            return nil
+        }
+        
+        // Download the image with timeout
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                guard httpResponse.statusCode == 200 else {
+                    logger.error("Failed to download profile image - HTTP \(httpResponse.statusCode)")
+                    return nil
+                }
+            }
+            
+            guard !data.isEmpty else {
+                logger.warning("Downloaded profile image data is empty")
+                return nil
+            }
+            
+            return data
+        } catch {
+            logger.error("Error downloading profile image: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
     }
     
     // Save widget data to UserDefaults (shared helper)
@@ -1064,16 +1240,45 @@ class FirebaseService: ObservableObject {
             }
             
             defaults.set(data, forKey: "widgetData")
+            // Force synchronization to ensure data is written before reloading timeline
             let syncSuccess = defaults.synchronize()
             
             let textContent = content.caption ?? content.statusText ?? content.noteText ?? "nil"
             logger.info("Widget data saved - contentType: \(content.contentType.rawValue, privacy: .public), hasImageData: \(imageData != nil, privacy: .public), imageSize: \(String(format: "%.1f", imageSizeKB))KB, totalSize: \(String(format: "%.2f", dataSizeMB))MB, syncSuccess: \(syncSuccess), senderName: \(content.senderName, privacy: .public), text: \(textContent, privacy: .public)")
+            
+            // Debounce widget timeline reloads to prevent iOS throttling
+            // Also add a small delay to ensure UserDefaults is fully written
+            let now = Date()
+            let timeSinceLastReload = now.timeIntervalSince(lastWidgetReloadTime)
+            let minDelay: TimeInterval = 0.2 // 200ms minimum delay after saving
+            
+            if timeSinceLastReload >= widgetReloadDebounceInterval {
+                // Reload after a small delay to ensure UserDefaults is written
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: UInt64(minDelay * 1_000_000_000))
+                    let newNow = Date()
+                    if newNow.timeIntervalSince(lastWidgetReloadTime) >= widgetReloadDebounceInterval {
+                        lastWidgetReloadTime = newNow
+                        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+                        logger.info("Widget timeline reloaded for kind: LoveWidget")
+                    }
+                }
+            } else {
+                // Schedule reload after debounce interval
+                let delay = max(widgetReloadDebounceInterval - timeSinceLastReload, minDelay)
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    let newNow = Date()
+                    if newNow.timeIntervalSince(lastWidgetReloadTime) >= widgetReloadDebounceInterval {
+                        lastWidgetReloadTime = newNow
+                        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
+                        logger.info("Widget timeline reloaded for kind: LoveWidget (debounced)")
+                    }
+                }
+            }
         } else {
             logger.error("Failed to encode widget data")
         }
-        
-        WidgetCenter.shared.reloadTimelines(ofKind: "LoveWidget")
-        logger.info("Widget timeline reloaded for kind: LoveWidget")
     }
     
     func getWidgetData() -> WidgetData {

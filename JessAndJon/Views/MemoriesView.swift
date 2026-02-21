@@ -149,9 +149,9 @@ struct MemoriesView: View {
                             Text("•")
                                 .font(.appCaption)
                                 .foregroundColor(AppTheme.textSecondary)
-                            
-                            Text(daysUntilAnniversary(from: anniversary))
-                                .font(.appCaption)
+                        
+                        Text(daysUntilAnniversary(from: anniversary))
+                            .font(.appCaption)
                                 .foregroundColor(AppTheme.accentPurple)
                         }
                     } else {
@@ -270,31 +270,31 @@ struct MemoriesView: View {
             }
             
             // Other stats - now clickable
-            HStack(spacing: 12) {
-                statCard(
-                    icon: "photo.fill",
-                    count: memories.filter { $0.contentType == .photo }.count,
-                    label: "Photos",
+        HStack(spacing: 12) {
+            statCard(
+                icon: "photo.fill",
+                count: memories.filter { $0.contentType == .photo }.count,
+                label: "Photos",
                     color: AppTheme.accentPink,
                     contentType: .photo
-                )
-                
-                statCard(
-                    icon: "note.text",
-                    count: memories.filter { $0.contentType == .note || $0.contentType == .drawing }.count,
-                    label: "Notes",
+            )
+            
+            statCard(
+                icon: "note.text",
+                count: memories.filter { $0.contentType == .note || $0.contentType == .drawing }.count,
+                label: "Notes",
                     color: AppTheme.accentPurple,
                     contentType: .note
-                )
-                
-                statCard(
-                    icon: "heart.text.square.fill",
-                    count: memories.filter { $0.contentType == .status }.count,
-                    label: "Statuses",
+            )
+            
+            statCard(
+                icon: "heart.text.square.fill",
+                count: memories.filter { $0.contentType == .status }.count,
+                label: "Statuses",
                     color: AppTheme.heartPink,
                     contentType: .status
-                )
-            }
+            )
+        }
             
             // Filter indicator and clear button
             if selectedFilter != nil {
@@ -346,36 +346,36 @@ struct MemoriesView: View {
                 }
             }
         }) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
                         .fill(isSelected ? color.opacity(0.25) : color.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 18))
-                        .foregroundColor(color)
-                }
+                    .frame(width: 44, height: 44)
                 
-                Text("\(count)")
-                    .font(.appSubheadline)
-                    .foregroundColor(AppTheme.textPrimary)
-                
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundColor(AppTheme.textSecondary)
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(color)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
+            
+            Text("\(count)")
+                .font(.appSubheadline)
+                .foregroundColor(AppTheme.textPrimary)
+            
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(AppTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
                     .fill(isSelected ? color.opacity(0.1) : Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(isSelected ? color : Color.clear, lineWidth: 2)
                     )
                     .shadow(color: color.opacity(isSelected ? 0.2 : 0.1), radius: isSelected ? 12 : 8, x: 0, y: isSelected ? 6 : 4)
-            )
+        )
         }
         .buttonStyle(.plain)
     }
@@ -389,7 +389,7 @@ struct MemoriesView: View {
         ], spacing: 8) {
             ForEach(filteredMemories) { memory in
                 Button(action: { selectedContent = memory }) {
-                    memoryCell(memory: memory)
+                memoryCell(memory: memory)
                 }
                 .buttonStyle(.plain)
             }
@@ -437,12 +437,12 @@ struct MemoriesView: View {
                             .foregroundColor(AppTheme.accentPurple)
                     }
                 }
-                case .status:
+            case .status:
                 AppTheme.softGradient.opacity(0.5)
                 VStack(spacing: 4) {
                     if let emoji = memory.statusEmoji {
                         Text(emoji)
-                            .font(.system(size: 28))
+                        .font(.system(size: 28))
                     } else {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 20))
@@ -616,8 +616,8 @@ struct MemoriesView: View {
     private func saveAnniversary() {
         guard var user = appState.currentUser else { return }
         
-        user.anniversaryDate = anniversaryDate
-        appState.saveUser(user)
+            user.anniversaryDate = anniversaryDate
+            appState.saveUser(user)
         
         // Also save to Firestore so it syncs between devices
         Task {
@@ -757,7 +757,7 @@ struct CollageView: View {
                     VStack(spacing: 12) {
                         if let emoji = memory.statusEmoji {
                             Text(emoji)
-                                .font(.system(size: 80))
+                            .font(.system(size: 80))
                         } else {
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 48))

@@ -67,6 +67,10 @@ struct NotesView: View {
             }
             .padding(.horizontal, 20)
         }
+        .onTapGesture {
+            // Dismiss keyboard when tapping outside
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .overlay {
             if showSuccess {
                 successOverlay
@@ -204,33 +208,33 @@ struct NotesView: View {
             if let drawing = currentDrawing {
                 // Show drawing preview with caption field
                 VStack(spacing: 12) {
-                    ZStack {
-                        Image(uiImage: drawing)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 250)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(AppTheme.mainGradient, lineWidth: 2)
-                            )
-                            .shadow(color: AppTheme.accentPink.opacity(0.2), radius: 15, x: 0, y: 8)
-                        
-                        // Edit button
-                        VStack {
-                            HStack {
-                                Spacer()
+                ZStack {
+                    Image(uiImage: drawing)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 250)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(AppTheme.mainGradient, lineWidth: 2)
+                        )
+                        .shadow(color: AppTheme.accentPink.opacity(0.2), radius: 15, x: 0, y: 8)
+                    
+                    // Edit button
+                    VStack {
+                        HStack {
+                            Spacer()
                                 Button(action: { 
                                     currentDrawing = nil
                                     drawingCaption = ""
                                 }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 28))
-                                        .foregroundStyle(.white, Color.black.opacity(0.5))
-                                }
-                                .padding(8)
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(.white, Color.black.opacity(0.5))
                             }
-                            Spacer()
+                            .padding(8)
+                        }
+                        Spacer()
                         }
                     }
                     
@@ -313,7 +317,7 @@ struct NotesView: View {
                                 drawingCaption = note
                             } else {
                                 // If text note mode, use as note text
-                                noteText = note
+                            noteText = note
                             }
                             selectedQuickNote = note
                         }
